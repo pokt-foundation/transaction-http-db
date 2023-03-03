@@ -1,0 +1,6 @@
+# This Dockerfile only used for setting up a local Dockerized test environment for running E2E tests.
+# TODO If repo does not use a Docker Compose test environment this file can be removed
+version: "3"
+
+services:
+# TODO - declare any services needed to run E2E tests here
