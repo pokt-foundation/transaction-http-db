@@ -35,20 +35,6 @@ func (_m *mockDriver) ReadRelay(ctx context.Context, relayID int) (types.Relay, 
 	return r0, r1
 }
 
-// WriteError provides a mock function with given fields: ctx, poktErr
-func (_m *mockDriver) WriteError(ctx context.Context, poktErr types.Error) error {
-	ret := _m.Called(ctx, poktErr)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, types.Error) error); ok {
-		r0 = rf(ctx, poktErr)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // WriteRegion provides a mock function with given fields: ctx, region
 func (_m *mockDriver) WriteRegion(ctx context.Context, region types.PortalRegion) error {
 	ret := _m.Called(ctx, region)

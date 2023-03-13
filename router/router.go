@@ -15,7 +15,6 @@ import (
 )
 
 type driver interface {
-	WriteError(ctx context.Context, poktErr types.Error) error
 	WriteSession(ctx context.Context, session types.PocketSession) error
 	WriteRegion(ctx context.Context, region types.PortalRegion) error
 	WriteRelay(ctx context.Context, relay types.Relay) error
@@ -37,6 +36,10 @@ func (rt *Router) logError(err error) {
 	rt.log.WithFields(fields).Error(err)
 }
 
+func respondWithResultOK(w http.ResponseWriter) {
+	jsonresponse.RespondWithJSON(w, http.StatusOK, map[string]string{"result": "ok"})
+}
+
 // NewRouter returns router instance
 func NewRouter(driver driver, apiKeys map[string]bool, logger *logrus.Logger) (*Router, error) {
 	rt := &Router{
@@ -48,7 +51,6 @@ func NewRouter(driver driver, apiKeys map[string]bool, logger *logrus.Logger) (*
 
 	rt.Router.HandleFunc("/", rt.HealthCheck).Methods(http.MethodGet)
 
-	rt.Router.HandleFunc("/v0/error", rt.CreateError).Methods(http.MethodPost)
 	rt.Router.HandleFunc("/v0/session", rt.CreateSession).Methods(http.MethodPost)
 	rt.Router.HandleFunc("/v0/region", rt.CreateRegion).Methods(http.MethodPost)
 	rt.Router.HandleFunc("/v0/relay", rt.CreateRelay).Methods(http.MethodPost)
@@ -90,30 +92,6 @@ func (rt *Router) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (rt *Router) CreateError(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	decoder := json.NewDecoder(r.Body)
-
-	var errToAdd types.Error
-	err := decoder.Decode(&errToAdd)
-	if err != nil {
-		rt.logError(fmt.Errorf("CreateError in JSON decoding failed: %w", err))
-		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	defer r.Body.Close()
-
-	err = rt.Driver.WriteError(ctx, errToAdd)
-	if err != nil {
-		rt.logError(fmt.Errorf("CreateError in WriteError failed: %w", err))
-		jsonresponse.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	jsonresponse.RespondWithJSON(w, http.StatusOK, errToAdd)
-}
-
 func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	decoder := json.NewDecoder(r.Body)
@@ -135,7 +113,7 @@ func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonresponse.RespondWithJSON(w, http.StatusOK, session)
+	respondWithResultOK(w)
 }
 
 func (rt *Router) CreateRegion(w http.ResponseWriter, r *http.Request) {
@@ -159,7 +137,7 @@ func (rt *Router) CreateRegion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonresponse.RespondWithJSON(w, http.StatusOK, region)
+	respondWithResultOK(w)
 }
 
 func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +161,7 @@ func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonresponse.RespondWithJSON(w, http.StatusOK, relay)
+	respondWithResultOK(w)
 }
 
 func (rt *Router) GetRelay(w http.ResponseWriter, r *http.Request) {
