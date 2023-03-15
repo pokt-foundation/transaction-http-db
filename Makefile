@@ -1,5 +1,6 @@
 gen_mocks:
-	mockery --name=driver --recursive --inpkg
+	mockery --name=Driver --recursive --inpkg --case=underscore
+	mockery --name=RelayWriter --recursive --inpkg --case=underscore
 
 init-pre-commit:
 	wget https://github.com/pre-commit/pre-commit/releases/download/v2.20.0/pre-commit-2.20.0.pyz

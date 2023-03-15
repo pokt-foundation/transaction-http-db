@@ -4,10 +4,11 @@ go 1.18
 
 require (
 	github.com/gorilla/mux v1.8.0
-	github.com/pokt-foundation/transaction-db v1.2.0
+	github.com/pokt-foundation/transaction-db v1.3.0
 	github.com/pokt-foundation/utils-go v0.2.9
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
+	golang.org/x/sync v0.1.0
 )
 
 require (

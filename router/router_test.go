@@ -2,15 +2,17 @@ package router
 
 import (
 	"bytes"
+	context "context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/pokt-foundation/transaction-db/types"
-
+	"github.com/pokt-foundation/transaction-http-db/batch"
 	"github.com/sirupsen/logrus"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -19,7 +21,9 @@ import (
 func TestRouter_HealthCheck(t *testing.T) {
 	c := require.New(t)
 
-	router, err := NewRouter(&mockDriver{}, map[string]bool{"": true}, logrus.New())
+	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", batch, logrus.New())
 	c.NoError(err)
 
 	tests := []struct {
@@ -37,7 +41,7 @@ func TestRouter_HealthCheck(t *testing.T) {
 		c.NoError(err)
 
 		rr := httptest.NewRecorder()
-		router.Router.ServeHTTP(rr, req)
+		router.router.ServeHTTP(rr, req)
 		c.Equal(tt.expectedStatusCode, rr.Code)
 	}
 }
@@ -45,8 +49,10 @@ func TestRouter_HealthCheck(t *testing.T) {
 func TestRouter_CreateSession(t *testing.T) {
 	c := require.New(t)
 
-	driverMock := &mockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, logrus.New())
+	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+
+	driverMock := &MockDriver{}
+	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", batch, logrus.New())
 	c.NoError(err)
 
 	rawSessionToSend := types.PocketSession{
@@ -100,7 +106,7 @@ func TestRouter_CreateSession(t *testing.T) {
 			driverMock.On("WriteSession", mock.Anything, mock.Anything).Return(tt.errReturnedByDriver).Once()
 		}
 
-		router.Router.ServeHTTP(rr, req)
+		router.router.ServeHTTP(rr, req)
 		c.Equal(tt.expectedStatusCode, rr.Code)
 	}
 }
@@ -108,8 +114,10 @@ func TestRouter_CreateSession(t *testing.T) {
 func TestRouter_CreateRegion(t *testing.T) {
 	c := require.New(t)
 
-	driverMock := &mockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, logrus.New())
+	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+
+	driverMock := &MockDriver{}
+	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", batch, logrus.New())
 	c.NoError(err)
 
 	rawRegionToSend := types.PortalRegion{
@@ -163,7 +171,7 @@ func TestRouter_CreateRegion(t *testing.T) {
 			driverMock.On("WriteRegion", mock.Anything, mock.Anything).Return(tt.errReturnedByDriver).Once()
 		}
 
-		router.Router.ServeHTTP(rr, req)
+		router.router.ServeHTTP(rr, req)
 		c.Equal(tt.expectedStatusCode, rr.Code)
 	}
 }
@@ -171,30 +179,48 @@ func TestRouter_CreateRegion(t *testing.T) {
 func TestRouter_CreateRelay(t *testing.T) {
 	c := require.New(t)
 
-	driverMock := &mockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, logrus.New())
+	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", batch, logrus.New())
 	c.NoError(err)
 
 	rawRelayToSend := types.Relay{
-		RelayRoundtripTime: 21,
+		ChainID:                  21,
+		EndpointID:               21,
+		SessionKey:               "21",
+		PoktNodeAddress:          "21",
+		RelayStartDatetime:       time.Now(),
+		RelayReturnDatetime:      time.Now(),
+		RelayRoundtripTime:       1,
+		RelayChainMethodID:       21,
+		RelayDataSize:            21,
+		RelayPortalTripTime:      21,
+		RelayNodeTripTime:        21,
+		RelayURLIsPublicEndpoint: false,
+		PortalOriginRegionID:     12,
+		IsAltruistRelay:          false,
 	}
 
 	relayToSend, err := json.Marshal(rawRelayToSend)
 	c.NoError(err)
 
+	rawWrongRelayToSend := types.Relay{
+		ChainID: 21,
+	}
+
+	wrongRelayToSend, err := json.Marshal(rawWrongRelayToSend)
+	c.NoError(err)
+
 	tests := []struct {
-		name                string
-		expectedStatusCode  int
-		reqInput            []byte
-		errReturnedByDriver error
-		apiKey              string
-		setMock             bool
+		name               string
+		expectedStatusCode int
+		reqInput           []byte
+		apiKey             string
 	}{
 		{
 			name:               "Success",
 			expectedStatusCode: http.StatusOK,
 			reqInput:           relayToSend,
-			setMock:            true,
 		},
 		{
 			name:               "Wrong input",
@@ -202,11 +228,9 @@ func TestRouter_CreateRelay(t *testing.T) {
 			reqInput:           []byte("wrong"),
 		},
 		{
-			name:                "Failure on driver",
-			expectedStatusCode:  http.StatusInternalServerError,
-			reqInput:            relayToSend,
-			errReturnedByDriver: errors.New("dummy"),
-			setMock:             true,
+			name:               "Invalid Relay",
+			expectedStatusCode: http.StatusBadRequest,
+			reqInput:           wrongRelayToSend,
 		},
 		{
 			name:               "Not authorized",
@@ -222,11 +246,7 @@ func TestRouter_CreateRelay(t *testing.T) {
 		req.Header.Set("Authorization", tt.apiKey)
 		rr := httptest.NewRecorder()
 
-		if tt.setMock {
-			driverMock.On("WriteRelay", mock.Anything, mock.Anything).Return(tt.errReturnedByDriver).Once()
-		}
-
-		router.Router.ServeHTTP(rr, req)
+		router.router.ServeHTTP(rr, req)
 		c.Equal(tt.expectedStatusCode, rr.Code)
 	}
 }
@@ -234,8 +254,10 @@ func TestRouter_CreateRelay(t *testing.T) {
 func TestRouter_GetRelay(t *testing.T) {
 	c := require.New(t)
 
-	driverMock := &mockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, logrus.New())
+	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+
+	driverMock := &MockDriver{}
+	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", batch, logrus.New())
 	c.NoError(err)
 
 	relayToReturn := types.Relay{
@@ -299,8 +321,68 @@ func TestRouter_GetRelay(t *testing.T) {
 			driverMock.On("ReadRelay", mock.Anything, mock.Anything).Return(tt.relayReturnedByDriver, tt.errReturnedByDriver).Once()
 		}
 
-		router.Router.ServeHTTP(rr, req)
+		router.router.ServeHTTP(rr, req)
 		c.Equal(tt.expectedStatusCode, rr.Code)
 		c.Equal(tt.expectedBody, rr.Body.String())
+	}
+}
+
+func TestRouter_RunServer(t *testing.T) {
+	c := require.New(t)
+
+	tests := []struct {
+		name               string
+		ctxTimeout         time.Duration
+		expectedRelaysSize int
+	}{
+		{
+			name:               "Context finished",
+			ctxTimeout:         time.Millisecond,
+			expectedRelaysSize: 0,
+		},
+		{
+			name:               "Context not finished",
+			ctxTimeout:         time.Minute,
+			expectedRelaysSize: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		writerMock := &batch.MockRelayWriter{}
+		batch := batch.NewBatch(2, time.Hour, time.Hour, writerMock, logrus.New())
+
+		err := batch.AddRelay(types.Relay{
+			ChainID:                  21,
+			EndpointID:               21,
+			SessionKey:               "21",
+			PoktNodeAddress:          "21",
+			RelayStartDatetime:       time.Now(),
+			RelayReturnDatetime:      time.Now(),
+			RelayRoundtripTime:       1,
+			RelayChainMethodID:       21,
+			RelayDataSize:            21,
+			RelayPortalTripTime:      21,
+			RelayNodeTripTime:        21,
+			RelayURLIsPublicEndpoint: false,
+			PortalOriginRegionID:     12,
+			IsAltruistRelay:          false,
+		})
+		c.NoError(err)
+
+		time.Sleep(time.Second)
+		c.Equal(1, batch.RelaysSize())
+
+		router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", batch, logrus.New())
+		c.NoError(err)
+
+		ctxTimeout, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
+		defer cancel()
+
+		writerMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
+
+		go router.RunServer(ctxTimeout)
+
+		time.Sleep(time.Second)
+		c.Equal(tt.expectedRelaysSize, batch.RelaysSize())
 	}
 }
