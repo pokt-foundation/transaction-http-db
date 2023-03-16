@@ -71,5 +71,5 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: |
-            pocketfoundation/test-transaction-service:latest
-            pocketfoundation/test-transaction-service:${{ needs.release.outputs.version }}
+            pocketfoundation/transaction-http-db:latest
+            pocketfoundation/transaction-http-db:${{ needs.release.outputs.version }}
