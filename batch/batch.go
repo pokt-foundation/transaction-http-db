@@ -8,6 +8,7 @@ import (
 
 	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 type RelayWriter interface {
@@ -116,19 +117,17 @@ func (b *Batch) SaveRelays() error {
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDB)
 	defer cancel()
 
-	errChan := make(chan error, 1)
+	g, gCtx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return b.writer.WriteRelays(ctx, relays)
+	})
+	g.Go(func() error {
+		<-gCtx.Done()
+		return gCtx.Err()
+	})
 
-	go func() {
-		errChan <- b.writer.WriteRelays(ctx, relays)
-	}()
-
-	select {
-	case err := <-errChan:
-		if err != nil {
-			return err
-		}
-	case <-ctx.Done():
-		return ctx.Err()
+	if err := g.Wait(); err != nil {
+		return err
 	}
 
 	return nil
