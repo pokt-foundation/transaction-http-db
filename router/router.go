@@ -73,6 +73,8 @@ func (rt *Router) RunServer(ctx context.Context) {
 		Handler: rt.router,
 	}
 
+	rt.log.Printf("Transaction HTTP DB running in port: %s", rt.port)
+
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		return httpServer.ListenAndServe()
