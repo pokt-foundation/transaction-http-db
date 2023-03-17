@@ -81,11 +81,11 @@ func (rt *Router) RunServer(ctx context.Context) {
 	})
 	g.Go(func() error {
 		<-gCtx.Done()
-		rt.log.Info("Context finished")
+		rt.log.Info("HTTP router context finished")
 		if err := httpServer.Shutdown(context.Background()); err != nil {
 			rt.logError(fmt.Errorf("Error closing http server: %s", err))
 		}
-		if err := rt.batch.SaveRelays(); err != nil {
+		if err := rt.batch.SaveRelaysToDB(); err != nil {
 			rt.logError(fmt.Errorf("Error saving batch: %s", err))
 		}
 		return nil

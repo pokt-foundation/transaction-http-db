@@ -21,11 +21,13 @@ const (
 	maxBatchSize     = "MAX_BATCH_SIZE"
 	maxBatchDuration = "MAX_BATCH_DURATION"
 	dbTimeout        = "DB_TIMEOUT"
+	debug            = "DEBUG"
 
 	defaultPort          = "8080"
 	defaultBatchSize     = 1000
 	defaultBatchDuration = 60
 	defaultDBTimeout     = 60
+	defaultDebug         = false
 )
 
 type options struct {
@@ -35,6 +37,7 @@ type options struct {
 	maxBatchSize     int
 	maxBatchDuration time.Duration
 	dbTimeout        time.Duration
+	debug            bool
 }
 
 func gatherOptions() options {
@@ -45,25 +48,30 @@ func gatherOptions() options {
 		maxBatchSize:     int(environment.GetInt64(maxBatchSize, defaultBatchSize)),
 		maxBatchDuration: time.Duration(environment.GetInt64(maxBatchDuration, defaultBatchDuration)) * time.Second,
 		dbTimeout:        time.Duration(environment.GetInt64(dbTimeout, defaultDBTimeout)) * time.Second,
+		debug:            environment.GetBool(debug, defaultDebug),
 	}
 }
 
 func main() {
-	log := logrus.New()
-	// log as JSON instead of the default ASCII formatter.
-	log.SetFormatter(&logrus.JSONFormatter{})
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	options := gatherOptions()
+
+	log := logrus.New()
+	// log as JSON instead of the default ASCII formatter.
+	log.SetFormatter(&logrus.JSONFormatter{})
+
+	if options.debug {
+		log.Level = logrus.DebugLevel
+	}
 
 	driver, err := postgresdriver.NewPostgresDriver(options.connectionString)
 	if err != nil {
 		panic(err)
 	}
 
-	batch := batch.NewBatch(options.maxBatchSize, options.maxBatchDuration, options.dbTimeout, driver, log)
+	batch := batch.New(options.maxBatchSize, options.maxBatchDuration, options.dbTimeout, driver, log)
 
 	router, err := router.NewRouter(driver, options.apiKeys, options.port, batch, log)
 	if err != nil {

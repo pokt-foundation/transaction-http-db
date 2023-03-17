@@ -21,7 +21,7 @@ import (
 func TestRouter_HealthCheck(t *testing.T) {
 	c := require.New(t)
 
-	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+	batch := batch.New(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
 
 	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", batch, logrus.New())
 	c.NoError(err)
@@ -49,7 +49,7 @@ func TestRouter_HealthCheck(t *testing.T) {
 func TestRouter_CreateSession(t *testing.T) {
 	c := require.New(t)
 
-	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+	batch := batch.New(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
 
 	driverMock := &MockDriver{}
 	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", batch, logrus.New())
@@ -114,7 +114,7 @@ func TestRouter_CreateSession(t *testing.T) {
 func TestRouter_CreateRegion(t *testing.T) {
 	c := require.New(t)
 
-	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+	batch := batch.New(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
 
 	driverMock := &MockDriver{}
 	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", batch, logrus.New())
@@ -179,7 +179,7 @@ func TestRouter_CreateRegion(t *testing.T) {
 func TestRouter_CreateRelay(t *testing.T) {
 	c := require.New(t)
 
-	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+	batch := batch.New(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
 
 	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", batch, logrus.New())
 	c.NoError(err)
@@ -254,7 +254,7 @@ func TestRouter_CreateRelay(t *testing.T) {
 func TestRouter_GetRelay(t *testing.T) {
 	c := require.New(t)
 
-	batch := batch.NewBatch(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+	batch := batch.New(2, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
 
 	driverMock := &MockDriver{}
 	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", batch, logrus.New())
@@ -349,7 +349,7 @@ func TestRouter_RunServer(t *testing.T) {
 
 	for _, tt := range tests {
 		writerMock := &batch.MockRelayWriter{}
-		batch := batch.NewBatch(2, time.Hour, time.Hour, writerMock, logrus.New())
+		batch := batch.New(2, time.Hour, time.Hour, writerMock, logrus.New())
 
 		err := batch.AddRelay(types.Relay{
 			ChainID:                  21,

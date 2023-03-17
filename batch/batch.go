@@ -8,7 +8,6 @@ import (
 
 	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
 type RelayWriter interface {
@@ -38,7 +37,7 @@ func (b *Batch) logError(err error) {
 	b.log.WithFields(fields).Error(err)
 }
 
-func NewBatch(maxSize int, maxDuration, timeoutDB time.Duration, writer RelayWriter, logger *logrus.Logger) *Batch {
+func New(maxSize int, maxDuration, timeoutDB time.Duration, writer RelayWriter, logger *logrus.Logger) *Batch {
 	batch := &Batch{
 		maxSize:     maxSize,
 		maxDuration: maxDuration,
@@ -81,31 +80,37 @@ func (b *Batch) RelayBatcher() {
 	ticker := time.NewTicker(b.maxDuration)
 	defer ticker.Stop()
 
+	start := time.Now()
+
 	for {
 		select {
 		case relay := <-b.batchChan:
-			b.log.Info("Relay received in batch")
+			b.log.Debug("Relay received in batch")
 			b.addRelay(relay)
 
 			if b.RelaysSize() >= b.maxSize {
-				b.log.Info("Max size on relay batcher reached")
-				if err := b.SaveRelays(); err != nil {
-					b.logError(fmt.Errorf("Error saving batch: %s", err))
+				b.log.Debug("Max size on relay batcher reached")
+				if err := b.SaveRelaysToDB(); err != nil {
+					b.logError(fmt.Errorf("error saving batch: %s", err))
 				}
+				// Reset the ticker when max size is reached
+				ticker = time.NewTicker(b.maxDuration)
 			}
 
 		case <-ticker.C:
-			b.log.Info("Max duration on relay batcher reached")
-			if err := b.SaveRelays(); err != nil {
-				b.logError(fmt.Errorf("Error saving batch: %s", err))
+			fmt.Println(time.Since(start).Seconds())
+			b.log.Debug("Max duration on relay batcher reached")
+			if err := b.SaveRelaysToDB(); err != nil {
+				b.logError(fmt.Errorf("error saving batch: %s", err))
 			}
 		}
 	}
 }
 
-func (b *Batch) SaveRelays() error {
+func (b *Batch) SaveRelaysToDB() error {
 	b.rwMutex.Lock()
-	relays := b.relays
+	relays := make([]types.Relay, len(b.relays))
+	copy(relays, b.relays)
 	b.relays = nil
 	b.rwMutex.Unlock()
 
@@ -117,17 +122,19 @@ func (b *Batch) SaveRelays() error {
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDB)
 	defer cancel()
 
-	g, gCtx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		return b.writer.WriteRelays(ctx, relays)
-	})
-	g.Go(func() error {
-		<-gCtx.Done()
-		return gCtx.Err()
-	})
+	errChan := make(chan error, 1)
 
-	if err := g.Wait(); err != nil {
-		return err
+	go func() {
+		errChan <- b.writer.WriteRelays(ctx, relays)
+	}()
+
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 
 	return nil
