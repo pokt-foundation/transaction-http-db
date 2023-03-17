@@ -9,12 +9,14 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pokt-foundation/transaction-db/types"
+	"github.com/pokt-foundation/transaction-http-db/batch"
 	jsonresponse "github.com/pokt-foundation/utils-go/json-response"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/sirupsen/logrus"
 )
 
-type driver interface {
+type Driver interface {
 	WriteSession(ctx context.Context, session types.PocketSession) error
 	WriteRegion(ctx context.Context, region types.PortalRegion) error
 	WriteRelay(ctx context.Context, relay types.Relay) error
@@ -22,9 +24,11 @@ type driver interface {
 }
 
 type Router struct {
-	Router  *mux.Router
-	Driver  driver
-	APIKeys map[string]bool
+	router  *mux.Router
+	driver  Driver
+	apiKeys map[string]bool
+	batch   *batch.Batch
+	port    string
 	log     *logrus.Logger
 }
 
@@ -41,24 +45,55 @@ func respondWithResultOK(w http.ResponseWriter) {
 }
 
 // NewRouter returns router instance
-func NewRouter(driver driver, apiKeys map[string]bool, logger *logrus.Logger) (*Router, error) {
+func NewRouter(driver Driver, apiKeys map[string]bool, port string, batch *batch.Batch, logger *logrus.Logger) (*Router, error) {
 	rt := &Router{
-		Driver:  driver,
-		Router:  mux.NewRouter(),
-		APIKeys: apiKeys,
+		driver:  driver,
+		router:  mux.NewRouter(),
+		apiKeys: apiKeys,
+		batch:   batch,
+		port:    port,
 		log:     logger,
 	}
 
-	rt.Router.HandleFunc("/", rt.HealthCheck).Methods(http.MethodGet)
+	rt.router.HandleFunc("/", rt.HealthCheck).Methods(http.MethodGet)
 
-	rt.Router.HandleFunc("/v0/session", rt.CreateSession).Methods(http.MethodPost)
-	rt.Router.HandleFunc("/v0/region", rt.CreateRegion).Methods(http.MethodPost)
-	rt.Router.HandleFunc("/v0/relay", rt.CreateRelay).Methods(http.MethodPost)
-	rt.Router.HandleFunc("/v0/relay/{id}", rt.GetRelay).Methods(http.MethodGet)
+	rt.router.HandleFunc("/v0/session", rt.CreateSession).Methods(http.MethodPost)
+	rt.router.HandleFunc("/v0/region", rt.CreateRegion).Methods(http.MethodPost)
+	rt.router.HandleFunc("/v0/relay", rt.CreateRelay).Methods(http.MethodPost)
+	rt.router.HandleFunc("/v0/relay/{id}", rt.GetRelay).Methods(http.MethodGet)
 
-	rt.Router.Use(rt.AuthorizationHandler)
+	rt.router.Use(rt.AuthorizationHandler)
 
 	return rt, nil
+}
+
+func (rt *Router) RunServer(ctx context.Context) {
+	httpServer := &http.Server{
+		Addr:    ":" + rt.port,
+		Handler: rt.router,
+	}
+
+	rt.log.Printf("Transaction HTTP DB running in port: %s", rt.port)
+
+	g, gCtx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return httpServer.ListenAndServe()
+	})
+	g.Go(func() error {
+		<-gCtx.Done()
+		rt.log.Info("HTTP router context finished")
+		if err := httpServer.Shutdown(context.Background()); err != nil {
+			rt.logError(fmt.Errorf("Error closing http server: %s", err))
+		}
+		if err := rt.batch.SaveRelaysToDB(); err != nil {
+			rt.logError(fmt.Errorf("Error saving batch: %s", err))
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		rt.log.Infof("exit reason: %s", err.Error())
+	}
 }
 
 func (rt *Router) AuthorizationHandler(h http.Handler) http.Handler {
@@ -70,7 +105,7 @@ func (rt *Router) AuthorizationHandler(h http.Handler) http.Handler {
 			return
 		}
 
-		if !rt.APIKeys[r.Header.Get("Authorization")] {
+		if !rt.apiKeys[r.Header.Get("Authorization")] {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, err := w.Write([]byte("Unauthorized"))
 			if err != nil {
@@ -106,7 +141,7 @@ func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	err = rt.Driver.WriteSession(ctx, session)
+	err = rt.driver.WriteSession(ctx, session)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateSession in WriteSession failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -130,7 +165,7 @@ func (rt *Router) CreateRegion(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	err = rt.Driver.WriteRegion(ctx, region)
+	err = rt.driver.WriteRegion(ctx, region)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateRegion in WriteRegion failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -141,7 +176,6 @@ func (rt *Router) CreateRegion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	decoder := json.NewDecoder(r.Body)
 
 	var relay types.Relay
@@ -154,10 +188,10 @@ func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	err = rt.Driver.WriteRelay(ctx, relay)
+	err = rt.batch.AddRelay(relay)
 	if err != nil {
-		rt.logError(fmt.Errorf("CreateRelay in WriteRelay failed: %w", err))
-		jsonresponse.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		rt.logError(fmt.Errorf("CreateRelay in relay validating failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -175,7 +209,7 @@ func (rt *Router) GetRelay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	relay, err := rt.Driver.ReadRelay(ctx, id)
+	relay, err := rt.driver.ReadRelay(ctx, id)
 	if err != nil {
 		rt.logError(fmt.Errorf("GetRelay in ReadRelay failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusInternalServerError, err.Error())
