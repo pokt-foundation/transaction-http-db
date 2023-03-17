@@ -14,10 +14,6 @@ type RelayWriter interface {
 	WriteRelays(ctx context.Context, relays []types.Relay) error
 }
 
-type PublicWriter interface {
-	WriteRelays(ctx context.Context, relays []types.Relay) error
-}
-
 type Batch struct {
 	relays      []types.Relay
 	rwMutex     sync.RWMutex
