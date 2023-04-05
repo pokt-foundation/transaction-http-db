@@ -76,8 +76,6 @@ func (b *Batch) RelayBatcher() {
 	ticker := time.NewTicker(b.maxDuration)
 	defer ticker.Stop()
 
-	start := time.Now()
-
 	for {
 		select {
 		case relay := <-b.batchChan:
@@ -94,7 +92,6 @@ func (b *Batch) RelayBatcher() {
 			}
 
 		case <-ticker.C:
-			fmt.Println(time.Since(start).Seconds())
 			b.log.Debug("Max duration on relay batcher reached")
 			if err := b.SaveRelaysToDB(); err != nil {
 				b.logError(fmt.Errorf("error saving batch: %s", err))
