@@ -15,24 +15,29 @@ func TestBatch_RelayBatcher(t *testing.T) {
 	c := require.New(t)
 
 	validRelay := types.Relay{
-		ChainID:                  21,
-		EndpointID:               21,
+		PoktChainID:              "21",
+		EndpointID:               "21",
 		SessionKey:               "21",
 		PoktNodeAddress:          "21",
 		RelayStartDatetime:       time.Now(),
 		RelayReturnDatetime:      time.Now(),
 		RelayRoundtripTime:       1,
-		RelayChainMethodID:       21,
+		RelayChainMethodIDs:      []string{"eth_getLogs"},
 		RelayDataSize:            21,
 		RelayPortalTripTime:      21,
 		RelayNodeTripTime:        21,
 		RelayURLIsPublicEndpoint: false,
-		PortalOriginRegionID:     12,
+		PortalRegionName:         "region",
 		IsAltruistRelay:          false,
+		RelaySourceURL:           "example.com",
+		PoktNodeDomain:           "node.com",
+		PoktNodePublicKey:        "1234",
+		RequestID:                "1234",
+		PoktTxID:                 "1234",
 	}
 
 	invalidRelay := types.Relay{
-		EndpointID: 1,
+		EndpointID: "1",
 	}
 
 	tests := []struct {
@@ -64,7 +69,7 @@ func TestBatch_RelayBatcher(t *testing.T) {
 			maxDuration: time.Hour,
 			relaysToAdd: 1,
 			relayToAdd:  invalidRelay,
-			expectedErr: errors.New("ChainID is not set"),
+			expectedErr: errors.New("PoktChainID is not set"),
 		},
 	}
 	for _, tt := range tests {
