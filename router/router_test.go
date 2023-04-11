@@ -185,27 +185,32 @@ func TestRouter_CreateRelay(t *testing.T) {
 	c.NoError(err)
 
 	rawRelayToSend := types.Relay{
-		ChainID:                  21,
-		EndpointID:               21,
+		PoktChainID:              "0001",
+		EndpointID:               "21",
 		SessionKey:               "21",
 		PoktNodeAddress:          "21",
 		RelayStartDatetime:       time.Now(),
 		RelayReturnDatetime:      time.Now(),
 		RelayRoundtripTime:       1,
-		RelayChainMethodID:       21,
+		RelayChainMethodIDs:      []string{"eth_getLog"},
 		RelayDataSize:            21,
 		RelayPortalTripTime:      21,
 		RelayNodeTripTime:        21,
 		RelayURLIsPublicEndpoint: false,
-		PortalOriginRegionID:     12,
+		PortalRegionName:         "region",
 		IsAltruistRelay:          false,
+		RelaySourceURL:           "example.com",
+		PoktNodeDomain:           "node.com",
+		PoktNodePublicKey:        "1234",
+		RequestID:                "1234",
+		PoktTxID:                 "1234",
 	}
 
 	relayToSend, err := json.Marshal(rawRelayToSend)
 	c.NoError(err)
 
 	rawWrongRelayToSend := types.Relay{
-		ChainID: 21,
+		PoktChainID: "21",
 	}
 
 	wrongRelayToSend, err := json.Marshal(rawWrongRelayToSend)
@@ -352,20 +357,25 @@ func TestRouter_RunServer(t *testing.T) {
 		batch := batch.New(2, time.Hour, time.Hour, writerMock, logrus.New())
 
 		err := batch.AddRelay(types.Relay{
-			ChainID:                  21,
-			EndpointID:               21,
+			PoktChainID:              "21",
+			EndpointID:               "21",
 			SessionKey:               "21",
 			PoktNodeAddress:          "21",
 			RelayStartDatetime:       time.Now(),
 			RelayReturnDatetime:      time.Now(),
 			RelayRoundtripTime:       1,
-			RelayChainMethodID:       21,
+			RelayChainMethodIDs:      []string{"eth_getLogs"},
 			RelayDataSize:            21,
 			RelayPortalTripTime:      21,
 			RelayNodeTripTime:        21,
 			RelayURLIsPublicEndpoint: false,
-			PortalOriginRegionID:     12,
+			PortalRegionName:         "region",
 			IsAltruistRelay:          false,
+			RelaySourceURL:           "example.com",
+			PoktNodeDomain:           "node.com",
+			PoktNodePublicKey:        "1234",
+			RequestID:                "1234",
+			PoktTxID:                 "1234",
 		})
 		c.NoError(err)
 
