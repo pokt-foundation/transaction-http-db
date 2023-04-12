@@ -24,12 +24,12 @@ type Driver interface {
 }
 
 type Router struct {
-	router  *mux.Router
-	driver  Driver
-	apiKeys map[string]bool
-	batch   *batch.Batch
-	port    string
-	log     *logrus.Logger
+	router     *mux.Router
+	driver     Driver
+	apiKeys    map[string]bool
+	relayBatch *batch.RelayBatch
+	port       string
+	log        *logrus.Logger
 }
 
 func (rt *Router) logError(err error) {
@@ -45,14 +45,14 @@ func respondWithResultOK(w http.ResponseWriter) {
 }
 
 // NewRouter returns router instance
-func NewRouter(driver Driver, apiKeys map[string]bool, port string, batch *batch.Batch, logger *logrus.Logger) (*Router, error) {
+func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *batch.RelayBatch, logger *logrus.Logger) (*Router, error) {
 	rt := &Router{
-		driver:  driver,
-		router:  mux.NewRouter(),
-		apiKeys: apiKeys,
-		batch:   batch,
-		port:    port,
-		log:     logger,
+		driver:     driver,
+		router:     mux.NewRouter(),
+		apiKeys:    apiKeys,
+		relayBatch: relayBatch,
+		port:       port,
+		log:        logger,
 	}
 
 	rt.router.HandleFunc("/", rt.HealthCheck).Methods(http.MethodGet)
@@ -86,7 +86,7 @@ func (rt *Router) RunServer(ctx context.Context) {
 		if err := httpServer.Shutdown(context.Background()); err != nil {
 			rt.logError(fmt.Errorf("Error closing http server: %s", err))
 		}
-		if err := rt.batch.SaveRelaysToDB(); err != nil {
+		if err := rt.relayBatch.SaveRelaysToDB(); err != nil {
 			rt.logError(fmt.Errorf("Error saving batch: %s", err))
 		}
 		return nil
@@ -189,7 +189,7 @@ func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	err = rt.batch.AddRelay(relay)
+	err = rt.relayBatch.AddRelay(relay)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateRelay in relay validating failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -214,7 +214,7 @@ func (rt *Router) CreateRelays(w http.ResponseWriter, r *http.Request) {
 
 	errs := 0
 	for _, relay := range relays {
-		err = rt.batch.AddRelay(relay)
+		err = rt.relayBatch.AddRelay(relay)
 		if err != nil {
 			rt.logError(fmt.Errorf("CreateRelay in relay validating failed: %w", err))
 			errs++

@@ -18,18 +18,18 @@ import (
 )
 
 const (
-	connectionString = "CONNECTION_STRING"
-	apiKeys          = "API_KEYS"
-	port             = "PORT"
-	maxBatchSize     = "MAX_BATCH_SIZE"
-	maxBatchDuration = "MAX_BATCH_DURATION"
-	dbTimeout        = "DB_TIMEOUT"
-	debug            = "DEBUG"
-	useSSH           = "USE_SSH"
-	sshHost          = "SSH_HOST"
-	sshPort          = "SSH_PORT"
-	sshUser          = "SSH_USER"
-	sshKeyFilePath   = "SSH_KEY_FILE_PATH"
+	connectionString      = "CONNECTION_STRING"
+	apiKeys               = "API_KEYS"
+	port                  = "PORT"
+	maxRelayBatchSize     = "MAX_RELAY_BATCH_SIZE"
+	maxRelayBatchDuration = "MAX_RELAY_BATCH_DURATION"
+	dbTimeout             = "DB_TIMEOUT"
+	debug                 = "DEBUG"
+	useSSH                = "USE_SSH"
+	sshHost               = "SSH_HOST"
+	sshPort               = "SSH_PORT"
+	sshUser               = "SSH_USER"
+	sshKeyFilePath        = "SSH_KEY_FILE_PATH"
 
 	defaultPort          = "8080"
 	defaultBatchSize     = 1000
@@ -40,34 +40,34 @@ const (
 )
 
 type options struct {
-	connectionString string
-	apiKeys          map[string]bool
-	port             string
-	maxBatchSize     int
-	maxBatchDuration time.Duration
-	dbTimeout        time.Duration
-	debug            bool
-	useSSH           bool
-	sshHost          string
-	sshPort          string
-	sshUser          string
-	sshKeyFilePath   string
+	connectionString      string
+	apiKeys               map[string]bool
+	port                  string
+	maxRelayBatchSize     int
+	maxRelayBatchDuration time.Duration
+	dbTimeout             time.Duration
+	debug                 bool
+	useSSH                bool
+	sshHost               string
+	sshPort               string
+	sshUser               string
+	sshKeyFilePath        string
 }
 
 func gatherOptions() options {
 	return options{
-		connectionString: environment.MustGetString(connectionString),
-		apiKeys:          environment.MustGetStringMap(apiKeys, ","),
-		port:             environment.GetString(port, defaultPort),
-		maxBatchSize:     int(environment.GetInt64(maxBatchSize, defaultBatchSize)),
-		maxBatchDuration: time.Duration(environment.GetInt64(maxBatchDuration, defaultBatchDuration)) * time.Second,
-		dbTimeout:        time.Duration(environment.GetInt64(dbTimeout, defaultDBTimeout)) * time.Second,
-		debug:            environment.GetBool(debug, defaultDebug),
-		useSSH:           environment.GetBool(useSSH, defaultUseSSH),
-		sshHost:          environment.GetString(sshHost, ""),
-		sshPort:          environment.GetString(sshPort, ""),
-		sshUser:          environment.GetString(sshUser, ""),
-		sshKeyFilePath:   environment.GetString(sshKeyFilePath, ""),
+		connectionString:      environment.MustGetString(connectionString),
+		apiKeys:               environment.MustGetStringMap(apiKeys, ","),
+		port:                  environment.GetString(port, defaultPort),
+		maxRelayBatchSize:     int(environment.GetInt64(maxRelayBatchSize, defaultBatchSize)),
+		maxRelayBatchDuration: time.Duration(environment.GetInt64(maxRelayBatchDuration, defaultBatchDuration)) * time.Second,
+		dbTimeout:             time.Duration(environment.GetInt64(dbTimeout, defaultDBTimeout)) * time.Second,
+		debug:                 environment.GetBool(debug, defaultDebug),
+		useSSH:                environment.GetBool(useSSH, defaultUseSSH),
+		sshHost:               environment.GetString(sshHost, ""),
+		sshPort:               environment.GetString(sshPort, ""),
+		sshUser:               environment.GetString(sshUser, ""),
+		sshKeyFilePath:        environment.GetString(sshKeyFilePath, ""),
 	}
 }
 
@@ -124,9 +124,9 @@ func main() {
 		}
 	}
 
-	batch := batch.New(options.maxBatchSize, options.maxBatchDuration, options.dbTimeout, driver, log)
+	relayBatch := batch.NewRelayBatch(options.maxRelayBatchSize, options.maxRelayBatchDuration, options.dbTimeout, driver, log)
 
-	router, err := router.NewRouter(driver, options.apiKeys, options.port, batch, log)
+	router, err := router.NewRouter(driver, options.apiKeys, options.port, relayBatch, log)
 	if err != nil {
 		panic(err)
 	}

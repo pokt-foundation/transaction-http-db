@@ -14,7 +14,7 @@ type RelayWriter interface {
 	WriteRelays(ctx context.Context, relays []types.Relay) error
 }
 
-type Batch struct {
+type RelayBatch struct {
 	relays      []types.Relay
 	rwMutex     sync.RWMutex
 	batchChan   chan types.Relay
@@ -25,7 +25,7 @@ type Batch struct {
 	log         *logrus.Logger
 }
 
-func (b *Batch) logError(err error) {
+func (b *RelayBatch) logError(err error) {
 	fields := logrus.Fields{
 		"err": err.Error(),
 	}
@@ -33,8 +33,8 @@ func (b *Batch) logError(err error) {
 	b.log.WithFields(fields).Error(err)
 }
 
-func New(maxSize int, maxDuration, timeoutDB time.Duration, writer RelayWriter, logger *logrus.Logger) *Batch {
-	batch := &Batch{
+func NewRelayBatch(maxSize int, maxDuration, timeoutDB time.Duration, writer RelayWriter, logger *logrus.Logger) *RelayBatch {
+	batch := &RelayBatch{
 		maxSize:     maxSize,
 		maxDuration: maxDuration,
 		timeoutDB:   timeoutDB,
@@ -48,7 +48,7 @@ func New(maxSize int, maxDuration, timeoutDB time.Duration, writer RelayWriter, 
 	return batch
 }
 
-func (b *Batch) AddRelay(relay types.Relay) error {
+func (b *RelayBatch) AddRelay(relay types.Relay) error {
 	if err := relay.Validate(); err != nil {
 		return err
 	}
@@ -58,21 +58,21 @@ func (b *Batch) AddRelay(relay types.Relay) error {
 	return nil
 }
 
-func (b *Batch) RelaysSize() int {
+func (b *RelayBatch) RelaysSize() int {
 	b.rwMutex.RLock()
 	defer b.rwMutex.RUnlock()
 
 	return len(b.relays)
 }
 
-func (b *Batch) addRelay(relay types.Relay) {
+func (b *RelayBatch) addRelay(relay types.Relay) {
 	b.rwMutex.Lock()
 	defer b.rwMutex.Unlock()
 
 	b.relays = append(b.relays, relay)
 }
 
-func (b *Batch) RelayBatcher() {
+func (b *RelayBatch) RelayBatcher() {
 	ticker := time.NewTicker(b.maxDuration)
 	defer ticker.Stop()
 
@@ -100,7 +100,7 @@ func (b *Batch) RelayBatcher() {
 	}
 }
 
-func (b *Batch) SaveRelaysToDB() error {
+func (b *RelayBatch) SaveRelaysToDB() error {
 	b.rwMutex.Lock()
 	relays := make([]types.Relay, len(b.relays))
 	copy(relays, b.relays)

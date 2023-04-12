@@ -82,7 +82,7 @@ func TestBatch_RelayBatcher(t *testing.T) {
 	}
 	for _, tt := range tests {
 		writerMock := &MockRelayWriter{}
-		batch := New(tt.maxSize, tt.maxDuration, time.Hour, writerMock, logrus.New())
+		batch := NewRelayBatch(tt.maxSize, tt.maxDuration, time.Hour, writerMock, logrus.New())
 
 		writerMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
 
