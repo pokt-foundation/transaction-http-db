@@ -256,6 +256,107 @@ func TestRouter_CreateRelay(t *testing.T) {
 	}
 }
 
+func TestRouter_CreateRelays(t *testing.T) {
+	c := require.New(t)
+
+	batch := batch.New(3, time.Hour, time.Hour, &batch.MockRelayWriter{}, logrus.New())
+
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", batch, logrus.New())
+	c.NoError(err)
+
+	rawRelaysToSend := []types.Relay{{
+		PoktChainID:              "0001",
+		EndpointID:               "21",
+		SessionKey:               "21",
+		PoktNodeAddress:          "21",
+		RelayStartDatetime:       time.Now(),
+		RelayReturnDatetime:      time.Now(),
+		RelayRoundtripTime:       1,
+		RelayChainMethodIDs:      []string{"eth_getLog"},
+		RelayDataSize:            21,
+		RelayPortalTripTime:      21,
+		RelayNodeTripTime:        21,
+		RelayURLIsPublicEndpoint: false,
+		PortalRegionName:         "region",
+		IsAltruistRelay:          false,
+		RelaySourceURL:           "example.com",
+		PoktNodeDomain:           "node.com",
+		PoktNodePublicKey:        "1234",
+		RequestID:                "1234",
+		PoktTxID:                 "1234",
+	},
+		{
+			PoktChainID:              "0001",
+			EndpointID:               "22",
+			SessionKey:               "21",
+			PoktNodeAddress:          "22",
+			RelayStartDatetime:       time.Now(),
+			RelayReturnDatetime:      time.Now(),
+			RelayRoundtripTime:       1,
+			RelayChainMethodIDs:      []string{"eth_getLog"},
+			RelayDataSize:            21,
+			RelayPortalTripTime:      21,
+			RelayNodeTripTime:        21,
+			RelayURLIsPublicEndpoint: false,
+			PortalRegionName:         "region",
+			IsAltruistRelay:          false,
+			RelaySourceURL:           "example.com",
+			PoktNodeDomain:           "node.com",
+			PoktNodePublicKey:        "1234",
+			RequestID:                "1234",
+			PoktTxID:                 "1234",
+		}}
+
+	relayToSend, err := json.Marshal(rawRelaysToSend)
+	c.NoError(err)
+
+	rawWrongRelayToSend := types.Relay{
+		PoktChainID: "21",
+	}
+
+	wrongRelayToSend, err := json.Marshal(rawWrongRelayToSend)
+	c.NoError(err)
+
+	tests := []struct {
+		name               string
+		expectedStatusCode int
+		reqInput           []byte
+		apiKey             string
+	}{
+		{
+			name:               "Success",
+			expectedStatusCode: http.StatusOK,
+			reqInput:           relayToSend,
+		},
+		{
+			name:               "Wrong input",
+			expectedStatusCode: http.StatusBadRequest,
+			reqInput:           []byte("wrong"),
+		},
+		{
+			name:               "Invalid Relay",
+			expectedStatusCode: http.StatusBadRequest,
+			reqInput:           wrongRelayToSend,
+		},
+		{
+			name:               "Not authorized",
+			expectedStatusCode: http.StatusUnauthorized,
+			apiKey:             "wrong",
+		},
+	}
+
+	for _, tt := range tests {
+		req, err := http.NewRequest(http.MethodPost, "/v0/relays", bytes.NewBuffer(tt.reqInput))
+		c.NoError(err)
+
+		req.Header.Set("Authorization", tt.apiKey)
+		rr := httptest.NewRecorder()
+
+		router.router.ServeHTTP(rr, req)
+		c.Equal(tt.expectedStatusCode, rr.Code)
+	}
+}
+
 func TestRouter_GetRelay(t *testing.T) {
 	c := require.New(t)
 

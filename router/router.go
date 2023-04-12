@@ -60,6 +60,7 @@ func NewRouter(driver Driver, apiKeys map[string]bool, port string, batch *batch
 	rt.router.HandleFunc("/v0/session", rt.CreateSession).Methods(http.MethodPost)
 	rt.router.HandleFunc("/v0/region", rt.CreateRegion).Methods(http.MethodPost)
 	rt.router.HandleFunc("/v0/relay", rt.CreateRelay).Methods(http.MethodPost)
+	rt.router.HandleFunc("/v0/relays", rt.CreateRelays).Methods(http.MethodPost)
 	rt.router.HandleFunc("/v0/relay/{id}", rt.GetRelay).Methods(http.MethodGet)
 
 	rt.router.Use(rt.AuthorizationHandler)
@@ -192,6 +193,38 @@ func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateRelay in relay validating failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondWithResultOK(w)
+}
+
+func (rt *Router) CreateRelays(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+
+	var relays []types.Relay
+	err := decoder.Decode(&relays)
+	if err != nil {
+		rt.logError(fmt.Errorf("CreateRelay in JSON decoding failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	defer r.Body.Close()
+
+	errs := 0
+	for _, relay := range relays {
+		err = rt.batch.AddRelay(relay)
+		if err != nil {
+			rt.logError(fmt.Errorf("CreateRelay in relay validating failed: %w", err))
+			errs++
+		}
+	}
+
+	// TODO: Return the relay errors that failed
+	if errs > 0 {
+		msg := fmt.Sprintf("not all relays were processed successfully. failed relays: %d", errs)
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, msg)
 		return
 	}
 
