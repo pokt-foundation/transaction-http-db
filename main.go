@@ -130,8 +130,8 @@ func main() {
 		}
 	}
 
-	relayBatch := batch.NewRelayBatch(options.maxRelayBatchSize, options.maxRelayBatchDuration, options.dbTimeout, driver, log)
-	serviceRecordBatch := batch.NewServiceRecordBatch(options.maxServiceRecordBatchSize, options.maxServiceRecordBatchDuration, options.dbTimeout, driver, log)
+	relayBatch := batch.NewBatch(options.maxRelayBatchSize, options.maxRelayBatchDuration, options.dbTimeout, driver.WriteRelays, log)
+	serviceRecordBatch := batch.NewBatch(options.maxServiceRecordBatchSize, options.maxServiceRecordBatchDuration, options.dbTimeout, driver.WriteServiceRecords, log)
 
 	router, err := router.NewRouter(driver, options.apiKeys, options.port, relayBatch, serviceRecordBatch, log)
 	if err != nil {

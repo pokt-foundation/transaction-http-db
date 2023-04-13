@@ -29,8 +29,8 @@ type Router struct {
 	router             *mux.Router
 	driver             Driver
 	apiKeys            map[string]bool
-	relayBatch         *batch.RelayBatch
-	serviceRecordBatch *batch.ServiceRecordBatch
+	relayBatch         *batch.Batch[types.Relay]
+	serviceRecordBatch *batch.Batch[types.ServiceRecord]
 	port               string
 	log                *logrus.Logger
 }
@@ -48,7 +48,7 @@ func respondWithResultOK(w http.ResponseWriter) {
 }
 
 // NewRouter returns router instance
-func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *batch.RelayBatch, serviceRecordBatch *batch.ServiceRecordBatch, logger *logrus.Logger) (*Router, error) {
+func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *batch.Batch[types.Relay], serviceRecordBatch *batch.Batch[types.ServiceRecord], logger *logrus.Logger) (*Router, error) {
 	rt := &Router{
 		driver:             driver,
 		router:             mux.NewRouter(),
@@ -93,7 +93,7 @@ func (rt *Router) RunServer(ctx context.Context) {
 		if err := httpServer.Shutdown(context.Background()); err != nil {
 			rt.logError(fmt.Errorf("Error closing http server: %s", err))
 		}
-		if err := rt.relayBatch.SaveRelaysToDB(); err != nil {
+		if err := rt.relayBatch.Save(); err != nil {
 			rt.logError(fmt.Errorf("Error saving batch: %s", err))
 		}
 		return nil
@@ -196,7 +196,7 @@ func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	err = rt.relayBatch.AddRelay(relay)
+	err = rt.relayBatch.Add(relay)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateRelay in relay validating failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -221,7 +221,7 @@ func (rt *Router) CreateRelays(w http.ResponseWriter, r *http.Request) {
 
 	errs := 0
 	for _, relay := range relays {
-		err = rt.relayBatch.AddRelay(relay)
+		err = rt.relayBatch.Add(relay)
 		if err != nil {
 			rt.logError(fmt.Errorf("CreateRelays in relay validating failed: %w", err))
 			errs++
@@ -272,7 +272,7 @@ func (rt *Router) CreateServiceRecord(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	err = rt.serviceRecordBatch.AddServicRecord(serviceRecord)
+	err = rt.serviceRecordBatch.Add(serviceRecord)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateServiceRecord in service record validating failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -297,7 +297,7 @@ func (rt *Router) CreateServiceRecords(w http.ResponseWriter, r *http.Request) {
 
 	errs := 0
 	for _, serviceRecord := range serviceRecords {
-		err = rt.serviceRecordBatch.AddServicRecord(serviceRecord)
+		err = rt.serviceRecordBatch.Add(serviceRecord)
 		if err != nil {
 			rt.logError(fmt.Errorf("CreateServiceRecords in service record validating failed: %w", err))
 			errs++

@@ -82,17 +82,17 @@ func TestBatch_RelayBatcher(t *testing.T) {
 	}
 	for _, tt := range tests {
 		writerMock := &MockRelayWriter{}
-		batch := NewRelayBatch(tt.maxSize, tt.maxDuration, time.Hour, writerMock, logrus.New())
+		batch := NewBatch(tt.maxSize, tt.maxDuration, time.Hour, writerMock.WriteRelays, logrus.New())
 
 		writerMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
 
 		for i := 0; i < tt.relaysToAdd; i++ {
-			err := batch.AddRelay(tt.relayToAdd)
+			err := batch.Add(tt.relayToAdd)
 			c.Equal(tt.expectedErr, err)
 		}
 
 		time.Sleep(time.Second)
 
-		c.Equal(0, batch.RelaysSize())
+		c.Equal(0, batch.Size())
 	}
 }
