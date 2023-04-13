@@ -35,6 +35,27 @@ func (_m *MockDriver) ReadRelay(ctx context.Context, relayID int) (types.Relay, 
 	return r0, r1
 }
 
+// ReadServiceRecord provides a mock function with given fields: ctx, serviceRecordID
+func (_m *MockDriver) ReadServiceRecord(ctx context.Context, serviceRecordID int) (types.ServiceRecord, error) {
+	ret := _m.Called(ctx, serviceRecordID)
+
+	var r0 types.ServiceRecord
+	if rf, ok := ret.Get(0).(func(context.Context, int) types.ServiceRecord); ok {
+		r0 = rf(ctx, serviceRecordID)
+	} else {
+		r0 = ret.Get(0).(types.ServiceRecord)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = rf(ctx, serviceRecordID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // WriteRegion provides a mock function with given fields: ctx, region
 func (_m *MockDriver) WriteRegion(ctx context.Context, region types.PortalRegion) error {
 	ret := _m.Called(ctx, region)
@@ -56,6 +77,20 @@ func (_m *MockDriver) WriteRelay(ctx context.Context, relay types.Relay) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, types.Relay) error); ok {
 		r0 = rf(ctx, relay)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// WriteServiceRecord provides a mock function with given fields: ctx, serviceRecord
+func (_m *MockDriver) WriteServiceRecord(ctx context.Context, serviceRecord types.ServiceRecord) error {
+	ret := _m.Called(ctx, serviceRecord)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, types.ServiceRecord) error); ok {
+		r0 = rf(ctx, serviceRecord)
 	} else {
 		r0 = ret.Error(0)
 	}

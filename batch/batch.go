@@ -6,26 +6,27 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/sirupsen/logrus"
 )
 
-type RelayWriter interface {
-	WriteRelays(ctx context.Context, relays []types.Relay) error
+type Validator interface {
+	Validate() error
 }
 
-type Batch struct {
-	relays      []types.Relay
+type writerFunc[T Validator] func(context.Context, []T) error
+
+type Batch[T Validator] struct {
+	items       []T
 	rwMutex     sync.RWMutex
-	batchChan   chan types.Relay
+	batchChan   chan T
 	maxSize     int
 	maxDuration time.Duration
 	timeoutDB   time.Duration
-	writer      RelayWriter
+	writer      writerFunc[T]
 	log         *logrus.Logger
 }
 
-func (b *Batch) logError(err error) {
+func (b *Batch[T]) logError(err error) {
 	fields := logrus.Fields{
 		"err": err.Error(),
 	}
@@ -33,58 +34,58 @@ func (b *Batch) logError(err error) {
 	b.log.WithFields(fields).Error(err)
 }
 
-func New(maxSize int, maxDuration, timeoutDB time.Duration, writer RelayWriter, logger *logrus.Logger) *Batch {
-	batch := &Batch{
+func NewBatch[T Validator](maxSize int, maxDuration, timeoutDB time.Duration, writer writerFunc[T], logger *logrus.Logger) *Batch[T] {
+	batch := &Batch[T]{
 		maxSize:     maxSize,
 		maxDuration: maxDuration,
 		timeoutDB:   timeoutDB,
 		writer:      writer,
-		batchChan:   make(chan types.Relay, 32),
+		batchChan:   make(chan T, 32),
 		log:         logger,
 	}
 
-	go batch.RelayBatcher()
+	go batch.Batcher()
 
 	return batch
 }
 
-func (b *Batch) AddRelay(relay types.Relay) error {
-	if err := relay.Validate(); err != nil {
+func (b *Batch[T]) Add(item T) error {
+	if err := item.Validate(); err != nil {
 		return err
 	}
 
-	b.batchChan <- relay
+	b.batchChan <- item
 
 	return nil
 }
 
-func (b *Batch) RelaysSize() int {
+func (b *Batch[T]) Size() int {
 	b.rwMutex.RLock()
 	defer b.rwMutex.RUnlock()
 
-	return len(b.relays)
+	return len(b.items)
 }
 
-func (b *Batch) addRelay(relay types.Relay) {
+func (b *Batch[T]) add(item T) {
 	b.rwMutex.Lock()
 	defer b.rwMutex.Unlock()
 
-	b.relays = append(b.relays, relay)
+	b.items = append(b.items, item)
 }
 
-func (b *Batch) RelayBatcher() {
+func (b *Batch[T]) Batcher() {
 	ticker := time.NewTicker(b.maxDuration)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case relay := <-b.batchChan:
-			b.log.Debug("Relay received in batch")
-			b.addRelay(relay)
+		case item := <-b.batchChan:
+			b.log.Debug("item received in batch")
+			b.add(item)
 
-			if b.RelaysSize() >= b.maxSize {
-				b.log.Debug("Max size on relay batcher reached")
-				if err := b.SaveRelaysToDB(); err != nil {
+			if b.Size() >= b.maxSize {
+				b.log.Debug("max size on batcher reached")
+				if err := b.Save(); err != nil {
 					b.logError(fmt.Errorf("error saving batch: %s", err))
 				}
 				// Reset the ticker when max size is reached
@@ -92,23 +93,23 @@ func (b *Batch) RelayBatcher() {
 			}
 
 		case <-ticker.C:
-			b.log.Debug("Max duration on relay batcher reached")
-			if err := b.SaveRelaysToDB(); err != nil {
+			b.log.Debug("max duration on batcher reached")
+			if err := b.Save(); err != nil {
 				b.logError(fmt.Errorf("error saving batch: %s", err))
 			}
 		}
 	}
 }
 
-func (b *Batch) SaveRelaysToDB() error {
+func (b *Batch[T]) Save() error {
 	b.rwMutex.Lock()
-	relays := make([]types.Relay, len(b.relays))
-	copy(relays, b.relays)
-	b.relays = nil
+	items := make([]T, len(b.items))
+	copy(items, b.items)
+	b.items = nil
 	b.rwMutex.Unlock()
 
-	if len(relays) == 0 {
-		b.log.Info("No relay was saved")
+	if len(items) == 0 {
+		b.log.Debug("no item was saved")
 		return nil
 	}
 
@@ -118,7 +119,7 @@ func (b *Batch) SaveRelaysToDB() error {
 	errChan := make(chan error, 1)
 
 	go func() {
-		errChan <- b.writer.WriteRelays(ctx, relays)
+		errChan <- b.writer(ctx, items)
 	}()
 
 	select {
