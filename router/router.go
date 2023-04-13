@@ -21,15 +21,18 @@ type Driver interface {
 	WriteRegion(ctx context.Context, region types.PortalRegion) error
 	WriteRelay(ctx context.Context, relay types.Relay) error
 	ReadRelay(ctx context.Context, relayID int) (types.Relay, error)
+	WriteServiceRecord(ctx context.Context, serviceRecord types.ServiceRecord) error
+	ReadServiceRecord(ctx context.Context, serviceRecordID int) (types.ServiceRecord, error)
 }
 
 type Router struct {
-	router     *mux.Router
-	driver     Driver
-	apiKeys    map[string]bool
-	relayBatch *batch.RelayBatch
-	port       string
-	log        *logrus.Logger
+	router             *mux.Router
+	driver             Driver
+	apiKeys            map[string]bool
+	relayBatch         *batch.RelayBatch
+	serviceRecordBatch *batch.ServiceRecordBatch
+	port               string
+	log                *logrus.Logger
 }
 
 func (rt *Router) logError(err error) {
@@ -45,14 +48,15 @@ func respondWithResultOK(w http.ResponseWriter) {
 }
 
 // NewRouter returns router instance
-func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *batch.RelayBatch, logger *logrus.Logger) (*Router, error) {
+func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *batch.RelayBatch, serviceRecordBatch *batch.ServiceRecordBatch, logger *logrus.Logger) (*Router, error) {
 	rt := &Router{
-		driver:     driver,
-		router:     mux.NewRouter(),
-		apiKeys:    apiKeys,
-		relayBatch: relayBatch,
-		port:       port,
-		log:        logger,
+		driver:             driver,
+		router:             mux.NewRouter(),
+		apiKeys:            apiKeys,
+		relayBatch:         relayBatch,
+		serviceRecordBatch: serviceRecordBatch,
+		port:               port,
+		log:                logger,
 	}
 
 	rt.router.HandleFunc("/", rt.HealthCheck).Methods(http.MethodGet)
@@ -62,6 +66,9 @@ func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *
 	rt.router.HandleFunc("/v0/relay", rt.CreateRelay).Methods(http.MethodPost)
 	rt.router.HandleFunc("/v0/relays", rt.CreateRelays).Methods(http.MethodPost)
 	rt.router.HandleFunc("/v0/relay/{id}", rt.GetRelay).Methods(http.MethodGet)
+	rt.router.HandleFunc("/v0/service-record", rt.CreateServiceRecord).Methods(http.MethodPost)
+	rt.router.HandleFunc("/v0/service-records", rt.CreateServiceRecords).Methods(http.MethodPost)
+	rt.router.HandleFunc("/v0/service-record/{id}", rt.GetServiceRecord).Methods(http.MethodGet)
 
 	rt.router.Use(rt.AuthorizationHandler)
 
@@ -205,7 +212,7 @@ func (rt *Router) CreateRelays(w http.ResponseWriter, r *http.Request) {
 	var relays []types.Relay
 	err := decoder.Decode(&relays)
 	if err != nil {
-		rt.logError(fmt.Errorf("CreateRelay in JSON decoding failed: %w", err))
+		rt.logError(fmt.Errorf("CreateRelays in JSON decoding failed: %w", err))
 		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -216,7 +223,7 @@ func (rt *Router) CreateRelays(w http.ResponseWriter, r *http.Request) {
 	for _, relay := range relays {
 		err = rt.relayBatch.AddRelay(relay)
 		if err != nil {
-			rt.logError(fmt.Errorf("CreateRelay in relay validating failed: %w", err))
+			rt.logError(fmt.Errorf("CreateRelays in relay validating failed: %w", err))
 			errs++
 		}
 	}
@@ -250,4 +257,80 @@ func (rt *Router) GetRelay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonresponse.RespondWithJSON(w, http.StatusOK, relay)
+}
+
+func (rt *Router) CreateServiceRecord(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+
+	var serviceRecord types.ServiceRecord
+	err := decoder.Decode(&serviceRecord)
+	if err != nil {
+		rt.logError(fmt.Errorf("CreateServiceRecord in JSON decoding failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	defer r.Body.Close()
+
+	err = rt.serviceRecordBatch.AddServicRecord(serviceRecord)
+	if err != nil {
+		rt.logError(fmt.Errorf("CreateServiceRecord in service record validating failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondWithResultOK(w)
+}
+
+func (rt *Router) CreateServiceRecords(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+
+	var serviceRecords []types.ServiceRecord
+	err := decoder.Decode(&serviceRecords)
+	if err != nil {
+		rt.logError(fmt.Errorf("CreateServiceRecords in JSON decoding failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	defer r.Body.Close()
+
+	errs := 0
+	for _, serviceRecord := range serviceRecords {
+		err = rt.serviceRecordBatch.AddServicRecord(serviceRecord)
+		if err != nil {
+			rt.logError(fmt.Errorf("CreateServiceRecords in service record validating failed: %w", err))
+			errs++
+		}
+	}
+
+	// TODO: Return the service records errors that failed
+	if errs > 0 {
+		msg := fmt.Sprintf("not all service records were processed successfully. failed service records: %d", errs)
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, msg)
+		return
+	}
+
+	respondWithResultOK(w)
+}
+
+func (rt *Router) GetServiceRecord(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		rt.logError(fmt.Errorf("GetServiceRecord in params parsing failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	serviceRecord, err := rt.driver.ReadServiceRecord(ctx, id)
+	if err != nil {
+		rt.logError(fmt.Errorf("GetServiceRecord in ReadServiceRecord failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	jsonresponse.RespondWithJSON(w, http.StatusOK, serviceRecord)
 }
