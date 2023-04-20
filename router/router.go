@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/pokt-foundation/transaction-db/types"
@@ -93,9 +94,23 @@ func (rt *Router) RunServer(ctx context.Context) {
 		if err := httpServer.Shutdown(context.Background()); err != nil {
 			rt.logError(fmt.Errorf("Error closing http server: %s", err))
 		}
-		if err := rt.relayBatch.Save(); err != nil {
-			rt.logError(fmt.Errorf("Error saving batch: %s", err))
-		}
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			if err := rt.relayBatch.Save(); err != nil {
+				rt.logError(fmt.Errorf("Error saving relay batch: %s", err))
+			}
+		}()
+		go func() {
+			defer wg.Done()
+			if err := rt.serviceRecordBatch.Save(); err != nil {
+				rt.logError(fmt.Errorf("Error saving service record batch: %s", err))
+			}
+		}()
+		wg.Wait()
+
 		return nil
 	})
 
