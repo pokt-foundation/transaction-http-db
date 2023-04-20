@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/gorilla/mux v1.8.0
-	github.com/pokt-foundation/transaction-db v1.7.0
+	github.com/pokt-foundation/transaction-db v1.8.1
 	github.com/pokt-foundation/utils-go v0.3.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
