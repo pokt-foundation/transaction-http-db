@@ -745,19 +745,22 @@ func TestRouter_RunServer(t *testing.T) {
 	c := require.New(t)
 
 	tests := []struct {
-		name               string
-		ctxTimeout         time.Duration
-		expectedRelaysSize int
+		name                      string
+		ctxTimeout                time.Duration
+		expectedRelaysSize        int
+		expectedServicRecordsSize int
 	}{
 		{
-			name:               "Context finished",
-			ctxTimeout:         time.Millisecond,
-			expectedRelaysSize: 0,
+			name:                      "Context finished",
+			ctxTimeout:                time.Millisecond,
+			expectedRelaysSize:        0,
+			expectedServicRecordsSize: 0,
 		},
 		{
-			name:               "Context not finished",
-			ctxTimeout:         time.Minute,
-			expectedRelaysSize: 1,
+			name:                      "Context not finished",
+			ctxTimeout:                time.Minute,
+			expectedRelaysSize:        1,
+			expectedServicRecordsSize: 1,
 		},
 	}
 
@@ -799,8 +802,28 @@ func TestRouter_RunServer(t *testing.T) {
 		})
 		c.NoError(err)
 
+		err = serviceRecordBatch.Add(types.ServiceRecord{
+			SessionKey:             "21",
+			NodePublicKey:          "21",
+			PoktChainID:            "21",
+			RequestID:              "21",
+			PortalRegionName:       "La Colombia",
+			Latency:                21.07,
+			Tickets:                2,
+			Result:                 "a",
+			Available:              true,
+			Successes:              21,
+			Failures:               7,
+			P90SuccessLatency:      21.07,
+			MedianSuccessLatency:   21.07,
+			WeightedSuccessLatency: 21.07,
+			SuccessRate:            21,
+		})
+		c.NoError(err)
+
 		time.Sleep(time.Second)
 		c.Equal(1, relayBatch.Size())
+		c.Equal(1, serviceRecordBatch.Size())
 
 		router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
 		c.NoError(err)
@@ -809,10 +832,12 @@ func TestRouter_RunServer(t *testing.T) {
 		defer cancel()
 
 		relayWriterMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
+		serviceRecordMock.On("WriteServiceRecords", mock.Anything, mock.Anything).Return(nil).Once()
 
 		go router.RunServer(ctxTimeout)
 
 		time.Sleep(time.Second)
 		c.Equal(tt.expectedRelaysSize, relayBatch.Size())
+		c.Equal(tt.expectedServicRecordsSize, serviceRecordBatch.Size())
 	}
 }
