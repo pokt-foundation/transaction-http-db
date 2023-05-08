@@ -150,6 +150,10 @@ func (rt *Router) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+const (
+	errRepeatedSessionKeyMessage = "repeated session key"
+)
+
 func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	decoder := json.NewDecoder(r.Body)
@@ -167,6 +171,12 @@ func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 	err = rt.driver.WriteSession(ctx, session)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateSession in WriteSession failed: %w", err))
+
+		if err.Error() == errRepeatedSessionKeyMessage {
+			jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		jsonresponse.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

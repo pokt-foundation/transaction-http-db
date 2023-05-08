@@ -76,12 +76,14 @@ func TestRouter_CreateSession(t *testing.T) {
 		errReturnedByDriver error
 		apiKey              string
 		setMock             bool
+		repeat              bool
 	}{
 		{
 			name:               "Success",
 			expectedStatusCode: http.StatusOK,
 			reqInput:           sessionToSend,
 			setMock:            true,
+			repeat:             true,
 		},
 		{
 			name:               "Wrong input",
@@ -115,6 +117,19 @@ func TestRouter_CreateSession(t *testing.T) {
 
 		router.router.ServeHTTP(rr, req)
 		c.Equal(tt.expectedStatusCode, rr.Code)
+
+		if tt.repeat {
+			req, err := http.NewRequest(http.MethodPost, "/v0/session", bytes.NewBuffer(tt.reqInput))
+			c.NoError(err)
+
+			req.Header.Set("Authorization", tt.apiKey)
+			rr := httptest.NewRecorder()
+
+			driverMock.On("WriteSession", mock.Anything, mock.Anything).Return(errors.New(errRepeatedSessionKeyMessage)).Once()
+
+			router.router.ServeHTTP(rr, req)
+			c.Equal(http.StatusBadRequest, rr.Code)
+		}
 	}
 }
 
