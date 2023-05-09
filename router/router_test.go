@@ -63,7 +63,9 @@ func TestRouter_CreateSession(t *testing.T) {
 	c.NoError(err)
 
 	rawSessionToSend := types.PocketSession{
-		SessionKey: "21",
+		SessionKey:       "21",
+		SessionHeight:    1,
+		PortalRegionName: "region",
 	}
 
 	sessionToSend, err := json.Marshal(rawSessionToSend)
