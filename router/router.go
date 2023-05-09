@@ -168,6 +168,12 @@ func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
+	if err := session.Validate(); err != nil {
+		rt.logError(fmt.Errorf("CreateSession in validate session failed: %w", err))
+		jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	err = rt.driver.WriteSession(ctx, session)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateSession in WriteSession failed: %w", err))
