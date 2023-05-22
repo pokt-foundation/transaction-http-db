@@ -47,3 +47,24 @@ Will detect any potential secrets or sensitive information before allowing a com
 
 - Test variables that may resemble secrets (random hex strings, etc.) should be prefixed with `test_`
 - The inline comment `pragma: allowlist secret` may be added to a line to force acceptance of a false positive
+
+# Components Diagram
+
+```mermaid
+flowchart TD
+    A(Client) --> |Sends sessions| B[Router]
+    A --> |Sends relays| B
+    A --> |Sends service records| B
+    B --> |Saves sessions| E[Transaction DB]
+    B --> |Sends relays| C[Relay batch]
+    B --> |Sends service records| D[Service record batch]
+    C --> |After X quantity of relays\nor X quantity of time\nor in case of shutdown\nsaves relays| E
+    D --> |After X quantity of service records\n or X quantity of time\nor in case of shutdown\nsaves service records| E
+```
+Explanation of components:
+
+- **Client**: any external service doing http requests to Transaction HTTP DB service.
+- **Router**: internal component that consists of an http server routing the requests to its correct destination.
+- **Relay batch**: internal component that saves in memory the relays to later be saved in the Transaction DB after some requirements are meant. This is used to not hit the transaction DB on each request.
+- **Service records batch**: internal component that saves in memory the service records to later be saved in the Transaction DB after some requirements are meant. This is used to not hit the transaction DB on each request.
+- **Transaction DB**: PostgreSQL database for storing sessions, relays and service records. It serves as the primary storage for transaction data.
