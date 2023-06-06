@@ -87,7 +87,7 @@ func TestBatch_RelayBatcher(t *testing.T) {
 		writerMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
 
 		for i := 0; i < tt.relaysToAdd; i++ {
-			err := batch.Add(tt.relayToAdd)
+			err := batch.Add(&tt.relayToAdd)
 			c.Equal(tt.expectedErr, err)
 		}
 
