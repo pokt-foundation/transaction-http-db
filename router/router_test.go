@@ -788,7 +788,7 @@ func TestRouter_RunServer(t *testing.T) {
 		serviceRecordMock := &batch.MockServiceRecordWriter{}
 		serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
 
-		err := relayBatch.Add(types.Relay{
+		err := relayBatch.Add(&types.Relay{
 			PoktChainID:              "21",
 			EndpointID:               "21",
 			SessionKey:               "21",
@@ -819,7 +819,7 @@ func TestRouter_RunServer(t *testing.T) {
 		})
 		c.NoError(err)
 
-		err = serviceRecordBatch.Add(types.ServiceRecord{
+		err = serviceRecordBatch.Add(&types.ServiceRecord{
 			SessionKey:             "21",
 			NodePublicKey:          "21",
 			PoktChainID:            "21",
