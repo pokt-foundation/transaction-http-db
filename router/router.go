@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -150,10 +151,6 @@ func (rt *Router) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-const (
-	errRepeatedSessionKeyMessage = "repeated session key"
-)
-
 func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	decoder := json.NewDecoder(r.Body)
@@ -178,7 +175,7 @@ func (rt *Router) CreateSession(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateSession in WriteSession failed: %w", err))
 
-		if err.Error() == errRepeatedSessionKeyMessage {
+		if errors.Is(err, types.ErrRepeatedSessionKey) {
 			jsonresponse.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}

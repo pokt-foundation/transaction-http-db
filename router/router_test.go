@@ -127,7 +127,7 @@ func TestRouter_CreateSession(t *testing.T) {
 			req.Header.Set("Authorization", tt.apiKey)
 			rr := httptest.NewRecorder()
 
-			driverMock.On("WriteSession", mock.Anything, mock.Anything).Return(errors.New(errRepeatedSessionKeyMessage)).Once()
+			driverMock.On("WriteSession", mock.Anything, mock.Anything).Return(types.ErrRepeatedSessionKey).Once()
 
 			router.router.ServeHTTP(rr, req)
 			c.Equal(http.StatusBadRequest, rr.Code)
