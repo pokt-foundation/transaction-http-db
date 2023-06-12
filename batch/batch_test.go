@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/pokt-foundation/transaction-db/types"
-	"github.com/sirupsen/logrus"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestBatch_RelayBatcher(t *testing.T) {
@@ -82,7 +82,7 @@ func TestBatch_RelayBatcher(t *testing.T) {
 	}
 	for _, tt := range tests {
 		writerMock := &MockRelayWriter{}
-		batch := NewBatch(tt.maxSize, "relay", tt.maxDuration, time.Hour, writerMock.WriteRelays, logrus.New())
+		batch := NewBatch(tt.maxSize, "relay", tt.maxDuration, time.Hour, writerMock.WriteRelays, zap.NewNop())
 
 		writerMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
 
