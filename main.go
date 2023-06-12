@@ -13,7 +13,8 @@ import (
 	"github.com/pokt-foundation/transaction-http-db/batch"
 	"github.com/pokt-foundation/transaction-http-db/router"
 	"github.com/pokt-foundation/utils-go/environment"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -83,13 +84,16 @@ func main() {
 
 	options := gatherOptions()
 
-	log := logrus.New()
-	// log as JSON instead of the default ASCII formatter.
-	log.SetFormatter(&logrus.JSONFormatter{})
+	logConfig := zap.NewProductionConfig()
+	logConfig.DisableStacktrace = true
+	logConfig.DisableCaller = true
+	logConfig.EncoderConfig.TimeKey = ""
 
 	if options.debug {
-		log.Level = logrus.DebugLevel
+		logConfig.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	}
+
+	log := zap.Must(logConfig.Build())
 
 	var driver *postgresdriver.PostgresDriver
 

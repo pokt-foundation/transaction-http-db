@@ -13,9 +13,8 @@ import (
 	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/pokt-foundation/transaction-http-db/batch"
 	jsonresponse "github.com/pokt-foundation/utils-go/json-response"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/sirupsen/logrus"
 )
 
 type Driver interface {
@@ -34,15 +33,11 @@ type Router struct {
 	relayBatch         *batch.Batch[*types.Relay]
 	serviceRecordBatch *batch.Batch[*types.ServiceRecord]
 	port               string
-	log                *logrus.Logger
+	log                *zap.Logger
 }
 
 func (rt *Router) logError(err error) {
-	fields := logrus.Fields{
-		"err": err.Error(),
-	}
-
-	rt.log.WithFields(fields).Error(err)
+	rt.log.Error(err.Error(), zap.String("err", err.Error()))
 }
 
 func respondWithResultOK(w http.ResponseWriter) {
@@ -50,7 +45,7 @@ func respondWithResultOK(w http.ResponseWriter) {
 }
 
 // NewRouter returns router instance
-func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *batch.Batch[*types.Relay], serviceRecordBatch *batch.Batch[*types.ServiceRecord], logger *logrus.Logger) (*Router, error) {
+func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *batch.Batch[*types.Relay], serviceRecordBatch *batch.Batch[*types.ServiceRecord], logger *zap.Logger) (*Router, error) {
 	rt := &Router{
 		driver:             driver,
 		router:             mux.NewRouter(),
@@ -83,7 +78,7 @@ func (rt *Router) RunServer(ctx context.Context) {
 		Handler: rt.router,
 	}
 
-	rt.log.Printf("Transaction HTTP DB running in port: %s", rt.port)
+	rt.log.Info(fmt.Sprintf("Transaction HTTP DB running in port: %s", rt.port))
 
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error {
@@ -116,7 +111,7 @@ func (rt *Router) RunServer(ctx context.Context) {
 	})
 
 	if err := g.Wait(); err != nil {
-		rt.log.Infof("exit reason: %s", err.Error())
+		rt.log.Info(fmt.Sprintf("exit reason: %s", err.Error()))
 	}
 }
 

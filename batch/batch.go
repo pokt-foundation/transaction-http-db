@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type Validator interface {
@@ -24,19 +24,14 @@ type Batch[T Validator] struct {
 	maxDuration time.Duration
 	timeoutDB   time.Duration
 	writer      writerFunc[T]
-	log         *logrus.Logger
+	log         *zap.Logger
 }
 
 func (b *Batch[T]) logError(err error) {
-	fields := logrus.Fields{
-		"err":  err.Error(),
-		"name": b.name,
-	}
-
-	b.log.WithFields(fields).Error(err)
+	b.log.Error(err.Error(), zap.String("err", err.Error()), zap.String("name", b.name))
 }
 
-func NewBatch[T Validator](maxSize int, name string, maxDuration, timeoutDB time.Duration, writer writerFunc[T], logger *logrus.Logger) *Batch[T] {
+func NewBatch[T Validator](maxSize int, name string, maxDuration, timeoutDB time.Duration, writer writerFunc[T], logger *zap.Logger) *Batch[T] {
 	batch := &Batch[T]{
 		maxSize:     maxSize,
 		name:        name,
@@ -83,11 +78,11 @@ func (b *Batch[T]) Batcher() {
 	for {
 		select {
 		case item := <-b.batchChan:
-			b.log.Debugf("item received in %s batch", b.name)
+			b.log.Debug(fmt.Sprintf("item received in %s batch", b.name))
 			b.add(item)
 
 			if b.Size() >= b.maxSize {
-				b.log.Debugf("max size on %s batcher reached", b.name)
+				b.log.Debug(fmt.Sprintf("max size on %s batcher reached", b.name))
 				if err := b.Save(); err != nil {
 					b.logError(fmt.Errorf("error saving %s batch: %s", b.name, err))
 				}
@@ -96,7 +91,7 @@ func (b *Batch[T]) Batcher() {
 			}
 
 		case <-ticker.C:
-			b.log.Debugf("max duration on %s batcher reached", b.name)
+			b.log.Debug(fmt.Sprintf("max duration on %s batcher reached", b.name))
 			if err := b.Save(); err != nil {
 				b.logError(fmt.Errorf("error saving %s batch: %s", b.name, err))
 			}
@@ -112,7 +107,7 @@ func (b *Batch[T]) Save() error {
 	b.rwMutex.Unlock()
 
 	if len(items) == 0 {
-		b.log.Infof("no item was saved on %s", b.name)
+		b.log.Warn(fmt.Sprintf("no item was saved on %s", b.name))
 		return nil
 	}
 

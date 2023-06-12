@@ -13,20 +13,20 @@ import (
 
 	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/pokt-foundation/transaction-http-db/batch"
-	"github.com/sirupsen/logrus"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestRouter_HealthCheck(t *testing.T) {
 	c := require.New(t)
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
-	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	tests := []struct {
@@ -53,13 +53,13 @@ func TestRouter_CreateSession(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
 	driverMock := &MockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	rawSessionToSend := types.PocketSession{
@@ -139,13 +139,13 @@ func TestRouter_CreateRegion(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
 	driverMock := &MockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	rawRegionToSend := types.PortalRegion{
@@ -208,13 +208,13 @@ func TestRouter_CreateRelay(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 	relayWriterMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
-	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	rawRelayToSend := types.Relay{
@@ -301,13 +301,13 @@ func TestRouter_CreateServiceRecord(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 	serviceRecordMock.On("WriteServiceRecords", mock.Anything, mock.Anything).Return(nil).Once()
 
-	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	rawServiceRecordToSend := types.ServiceRecord{
@@ -382,13 +382,13 @@ func TestRouter_CreateRelays(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 	relayWriterMock.On("WriteRelays", mock.Anything, mock.Anything).Return(nil).Once()
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
-	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	rawRelaysToSend := []types.Relay{{
@@ -504,13 +504,13 @@ func TestRouter_CreateServiceRecords(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 	serviceRecordMock.On("WriteServiceRecords", mock.Anything, mock.Anything).Return(nil).Once()
 
-	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	rawServiceRecordsToSend := []types.ServiceRecord{{
@@ -602,13 +602,13 @@ func TestRouter_GetRelay(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
 	driverMock := &MockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	relayToReturn := types.Relay{
@@ -682,13 +682,13 @@ func TestRouter_GetServiceRecord(t *testing.T) {
 	c := require.New(t)
 
 	relayWriterMock := &batch.MockRelayWriter{}
-	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+	relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 	serviceRecordMock := &batch.MockServiceRecordWriter{}
-	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+	serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
 	driverMock := &MockDriver{}
-	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+	router, err := NewRouter(driverMock, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 	c.NoError(err)
 
 	serviceRecordToReturn := types.ServiceRecord{
@@ -783,10 +783,10 @@ func TestRouter_RunServer(t *testing.T) {
 
 	for _, tt := range tests {
 		relayWriterMock := &batch.MockRelayWriter{}
-		relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, logrus.New())
+		relayBatch := batch.NewBatch(2, "relay", time.Hour, time.Hour, relayWriterMock.WriteRelays, zap.NewNop())
 
 		serviceRecordMock := &batch.MockServiceRecordWriter{}
-		serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, logrus.New())
+		serviceRecordBatch := batch.NewBatch(2, "service_record", time.Hour, time.Hour, serviceRecordMock.WriteServiceRecords, zap.NewNop())
 
 		err := relayBatch.Add(&types.Relay{
 			PoktChainID:              "21",
@@ -842,7 +842,7 @@ func TestRouter_RunServer(t *testing.T) {
 		c.Equal(1, relayBatch.Size())
 		c.Equal(1, serviceRecordBatch.Size())
 
-		router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, logrus.New())
+		router, err := NewRouter(&MockDriver{}, map[string]bool{"": true}, "8080", relayBatch, serviceRecordBatch, zap.NewNop())
 		c.NoError(err)
 
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), tt.ctxTimeout)
