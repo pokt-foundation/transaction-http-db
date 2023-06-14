@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/gorilla/mux v1.8.0
-	github.com/pokt-foundation/transaction-db v1.16.0
+	github.com/pokt-foundation/transaction-db v1.16.1-0.20230614211923-90ce7aab49a6
 	github.com/pokt-foundation/utils-go v0.7.0
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/zap v1.24.0
