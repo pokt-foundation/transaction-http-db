@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
@@ -98,7 +97,7 @@ func main() {
 	var driver *postgresdriver.PostgresDriver
 
 	if options.useSSH {
-		sshKey, err := ioutil.ReadFile(options.sshKeyFilePath)
+		sshKey, err := os.ReadFile(options.sshKeyFilePath)
 		if err != nil {
 			panic(err)
 		}
