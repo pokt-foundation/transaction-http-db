@@ -232,7 +232,7 @@ func (rt *Router) CreateRelay(w http.ResponseWriter, r *http.Request) {
 func (rt *Router) CreateRelays(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 
-	var relays []types.Relay
+	var relays []*types.Relay
 	err := decoder.Decode(&relays)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateRelays in JSON decoding failed: %w", err))
@@ -244,7 +244,7 @@ func (rt *Router) CreateRelays(w http.ResponseWriter, r *http.Request) {
 
 	errs := 0
 	for _, relay := range relays {
-		err = rt.relayBatch.Add(&relay)
+		err = rt.relayBatch.Add(relay)
 		if err != nil {
 			rt.logError(fmt.Errorf("CreateRelays in relay validating failed: %w", err))
 			errs++
@@ -308,7 +308,7 @@ func (rt *Router) CreateServiceRecord(w http.ResponseWriter, r *http.Request) {
 func (rt *Router) CreateServiceRecords(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 
-	var serviceRecords []types.ServiceRecord
+	var serviceRecords []*types.ServiceRecord
 	err := decoder.Decode(&serviceRecords)
 	if err != nil {
 		rt.logError(fmt.Errorf("CreateServiceRecords in JSON decoding failed: %w", err))
@@ -320,7 +320,7 @@ func (rt *Router) CreateServiceRecords(w http.ResponseWriter, r *http.Request) {
 
 	errs := 0
 	for _, serviceRecord := range serviceRecords {
-		err = rt.serviceRecordBatch.Add(&serviceRecord)
+		err = rt.serviceRecordBatch.Add(serviceRecord)
 		if err != nil {
 			rt.logError(fmt.Errorf("CreateServiceRecords in service record validating failed: %w", err))
 			errs++
