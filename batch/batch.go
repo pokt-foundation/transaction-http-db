@@ -62,9 +62,6 @@ func (b *Batch[T]) Add(item T) error {
 }
 
 func (b *Batch[T]) Size() int {
-	b.rwMutex.RLock()
-	defer b.rwMutex.RUnlock()
-
 	return int(b.index.Load())
 }
 
