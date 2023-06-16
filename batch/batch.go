@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -25,6 +26,7 @@ type Batch[T Validator] struct {
 	timeoutDB   time.Duration
 	writer      writerFunc[T]
 	log         *zap.Logger
+	index       atomic.Int32
 }
 
 func (b *Batch[T]) logError(err error) {
@@ -40,6 +42,8 @@ func NewBatch[T Validator](maxSize int, name string, maxDuration, timeoutDB time
 		writer:      writer,
 		batchChan:   make(chan T, 32),
 		log:         logger,
+		items:       make([]T, maxSize),
+		index:       atomic.Int32{},
 	}
 
 	go batch.Batcher()
@@ -61,14 +65,15 @@ func (b *Batch[T]) Size() int {
 	b.rwMutex.RLock()
 	defer b.rwMutex.RUnlock()
 
-	return len(b.items)
+	return int(b.index.Load())
 }
 
 func (b *Batch[T]) add(item T) {
 	b.rwMutex.Lock()
 	defer b.rwMutex.Unlock()
 
-	b.items = append(b.items, item)
+	b.items[b.index.Load()] = item
+	b.index.Add(1)
 }
 
 func (b *Batch[T]) Batcher() {
@@ -101,10 +106,12 @@ func (b *Batch[T]) Batcher() {
 
 func (b *Batch[T]) Save() error {
 	b.rwMutex.Lock()
-	items := make([]T, len(b.items))
-	copy(items, b.items)
-	b.items = nil
-	b.rwMutex.Unlock()
+	defer b.rwMutex.Unlock()
+
+	size := b.index.Load()
+	items := make([]T, size)
+	copy(items, b.items[:size])
+	b.index.Store(0)
 
 	if len(items) == 0 {
 		b.log.Warn(fmt.Sprintf("no item was saved on %s", b.name))
