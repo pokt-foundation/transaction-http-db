@@ -103,12 +103,13 @@ func (b *Batch[T]) Batcher() {
 
 func (b *Batch[T]) Save() error {
 	b.rwMutex.Lock()
-	defer b.rwMutex.Unlock()
 
 	size := b.index.Load()
 	items := make([]T, size)
 	copy(items, b.items[:size])
 	b.index.Store(0)
+
+	b.rwMutex.Unlock()
 
 	if len(items) == 0 {
 		b.log.Warn(fmt.Sprintf("no item was saved on %s", b.name))
