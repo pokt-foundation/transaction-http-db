@@ -32,6 +32,7 @@ const (
 	sshPort                       = "SSH_PORT"
 	sshUser                       = "SSH_USER"
 	sshKeyFilePath                = "SSH_KEY_FILE_PATH"
+	chanSize                      = "CHAN_SIZE"
 
 	defaultPort          = "8080"
 	defaultBatchSize     = 1000
@@ -39,6 +40,7 @@ const (
 	defaultDBTimeout     = 60
 	defaultDebug         = false
 	defaultUseSSH        = false
+	defaultChanSize      = 10000
 )
 
 type options struct {
@@ -56,6 +58,7 @@ type options struct {
 	sshPort                       string
 	sshUser                       string
 	sshKeyFilePath                string
+	chanSize                      int
 }
 
 func gatherOptions() options {
@@ -74,6 +77,7 @@ func gatherOptions() options {
 		sshPort:                       environment.GetString(sshPort, ""),
 		sshUser:                       environment.GetString(sshUser, ""),
 		sshKeyFilePath:                environment.GetString(sshKeyFilePath, ""),
+		chanSize:                      int(environment.GetInt64(chanSize, defaultChanSize)),
 	}
 }
 
@@ -133,8 +137,8 @@ func main() {
 		}
 	}
 
-	relayBatch := batch.NewBatch(options.maxRelayBatchSize, "relay", options.maxRelayBatchDuration, options.dbTimeout, driver.WriteRelays, log)
-	serviceRecordBatch := batch.NewBatch(options.maxServiceRecordBatchSize, "service_record", options.maxServiceRecordBatchDuration, options.dbTimeout, driver.WriteServiceRecords, log)
+	relayBatch := batch.NewBatch(options.maxRelayBatchSize, options.chanSize, "relay", options.maxRelayBatchDuration, options.dbTimeout, driver.WriteRelays, log)
+	serviceRecordBatch := batch.NewBatch(options.maxServiceRecordBatchSize, options.chanSize, "service_record", options.maxServiceRecordBatchDuration, options.dbTimeout, driver.WriteServiceRecords, log)
 
 	router, err := router.NewRouter(driver, options.apiKeys, options.port, relayBatch, serviceRecordBatch, log)
 	if err != nil {

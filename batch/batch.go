@@ -33,14 +33,14 @@ func (b *Batch[T]) logError(err error) {
 	b.log.Error(err.Error(), zap.String("err", err.Error()), zap.String("name", b.name))
 }
 
-func NewBatch[T Validator](maxSize int, name string, maxDuration, timeoutDB time.Duration, writer writerFunc[T], logger *zap.Logger) *Batch[T] {
+func NewBatch[T Validator](maxSize, chanSize int, name string, maxDuration, timeoutDB time.Duration, writer writerFunc[T], logger *zap.Logger) *Batch[T] {
 	batch := &Batch[T]{
 		maxSize:     maxSize,
 		name:        name,
 		maxDuration: maxDuration,
 		timeoutDB:   timeoutDB,
 		writer:      writer,
-		batchChan:   make(chan T, 32),
+		batchChan:   make(chan T, chanSize),
 		log:         logger,
 		items:       make([]T, maxSize),
 		index:       atomic.Int32{},
