@@ -1,5 +1,5 @@
 <div align="center">
-    <img src=".github/banner.png" alt="Pocket Network logo" width="600"/>
+    <img src=".github/grove_logo.png" alt="Grove logo" width="600"/>
     <!-- TODO Rename header -->
     <h1>Transaction HTTP DB</h1>
     <big>Implementation of the service to communicate with the transaction DB</big>
