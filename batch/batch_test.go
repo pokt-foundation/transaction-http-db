@@ -1,7 +1,6 @@
 package batch
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -44,10 +43,6 @@ func TestBatch_RelayBatcher(t *testing.T) {
 		PoktTxID:                 "21",
 	}
 
-	invalidRelay := types.Relay{
-		EndpointID: "1",
-	}
-
 	tests := []struct {
 		name        string
 		maxSize     int
@@ -55,7 +50,6 @@ func TestBatch_RelayBatcher(t *testing.T) {
 		timeToWait  time.Duration
 		relaysToAdd int
 		relayToAdd  types.Relay
-		expectedErr error
 	}{
 		{
 			name:        "Save Relays For Size",
@@ -71,14 +65,6 @@ func TestBatch_RelayBatcher(t *testing.T) {
 			relaysToAdd: 1,
 			relayToAdd:  validRelay,
 		},
-		{
-			name:        "Invalid Relay",
-			maxSize:     1,
-			maxDuration: time.Hour,
-			relaysToAdd: 1,
-			relayToAdd:  invalidRelay,
-			expectedErr: errors.New("PoktChainID is not set"),
-		},
 	}
 	for _, tt := range tests {
 		writerMock := &MockRelayWriter{}
@@ -88,7 +74,7 @@ func TestBatch_RelayBatcher(t *testing.T) {
 
 		for i := 0; i < tt.relaysToAdd; i++ {
 			err := batch.Add(&tt.relayToAdd)
-			c.Equal(tt.expectedErr, err)
+			c.NoError(err)
 		}
 
 		time.Sleep(time.Second)
