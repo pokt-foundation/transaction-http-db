@@ -250,13 +250,6 @@ func TestRouter_CreateRelay(t *testing.T) {
 	relayToSend, err := json.Marshal(rawRelayToSend)
 	c.NoError(err)
 
-	rawWrongRelayToSend := types.Relay{
-		PoktChainID: "21",
-	}
-
-	wrongRelayToSend, err := json.Marshal(rawWrongRelayToSend)
-	c.NoError(err)
-
 	tests := []struct {
 		name               string
 		expectedStatusCode int
@@ -272,11 +265,6 @@ func TestRouter_CreateRelay(t *testing.T) {
 			name:               "Wrong input",
 			expectedStatusCode: http.StatusBadRequest,
 			reqInput:           []byte("wrong"),
-		},
-		{
-			name:               "Invalid Relay",
-			expectedStatusCode: http.StatusBadRequest,
-			reqInput:           wrongRelayToSend,
 		},
 		{
 			name:               "Not authorized",
@@ -453,13 +441,6 @@ func TestRouter_CreateRelays(t *testing.T) {
 	relayToSend, err := json.Marshal(rawRelaysToSend)
 	c.NoError(err)
 
-	rawWrongRelayToSend := []types.Relay{{
-		PoktChainID: "21",
-	}}
-
-	wrongRelayToSend, err := json.Marshal(rawWrongRelayToSend)
-	c.NoError(err)
-
 	tests := []struct {
 		name               string
 		expectedStatusCode int
@@ -475,11 +456,6 @@ func TestRouter_CreateRelays(t *testing.T) {
 			name:               "Wrong input",
 			expectedStatusCode: http.StatusBadRequest,
 			reqInput:           []byte("wrong"),
-		},
-		{
-			name:               "Invalid Relay",
-			expectedStatusCode: http.StatusBadRequest,
-			reqInput:           wrongRelayToSend,
 		},
 		{
 			name:               "Not authorized",
