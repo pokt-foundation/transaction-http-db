@@ -17,6 +17,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pokt-foundation/transaction-db v1.18.0 h1:yEBlrk4pn7bcrunAEoXHskDf9cQ31uUhAWV9CJWUi+w=
 github.com/pokt-foundation/transaction-db v1.18.0/go.mod h1:8fFJ/zVEqtlQFKE5nzoDBCNg5T/4Ek+4gWnkPLNU2J8=
+github.com/pokt-foundation/transaction-db v1.19.0 h1:J+OZzbrnQVTFKdmVJ/oDe/u8CLVupNA5IPjIZKrbDWg=
+github.com/pokt-foundation/transaction-db v1.19.0/go.mod h1:8fFJ/zVEqtlQFKE5nzoDBCNg5T/4Ek+4gWnkPLNU2J8=
 github.com/pokt-foundation/utils-go v0.7.0 h1:+BwAZj9Wfac6zkD4eQstRoz8lHc+6xBEtySys9WE5Ec=
 github.com/pokt-foundation/utils-go v0.7.0/go.mod h1:VMYNYtm1NKfCceLqzs6QSRhLcivafktirc3FSnB7Hxs=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
