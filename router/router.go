@@ -10,8 +10,8 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/pokt-foundation/transaction-http-db/batch"
+	"github.com/pokt-foundation/transaction-http-db/types"
 	jsonresponse "github.com/pokt-foundation/utils-go/json-response"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"

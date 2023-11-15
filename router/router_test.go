@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/pokt-foundation/transaction-http-db/batch"
+	"github.com/pokt-foundation/transaction-http-db/types"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
