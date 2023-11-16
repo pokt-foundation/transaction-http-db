@@ -2,8 +2,6 @@ module github.com/pokt-foundation/transaction-http-db
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	cloud.google.com/go/cloudsqlconn v1.3.0
 	github.com/gorilla/mux v1.8.0
