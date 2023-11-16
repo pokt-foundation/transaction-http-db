@@ -120,7 +120,6 @@ func (c *CloudSQLConfig) GetDriver(ctx context.Context) (driver *postgresdriver.
 		DBPassword:             c.options.pgPassword,
 		DBName:                 c.options.pgDatabase,
 		InstanceConnectionName: c.options.dbInstanceConnectionName,
-		PrivateIP:              "true",
 	}
 
 	driver, cleanup, err = postgresdriver.NewCloudSQLPostgresDriver(driverConfig)
