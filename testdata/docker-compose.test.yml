@@ -5,6 +5,7 @@ services:
   test-database:
     build:
       context: ..
+      dockerfile: ./Dockerfile.testdb
     container_name: test-database
     restart: always
     ports:

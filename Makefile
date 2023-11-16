@@ -22,7 +22,8 @@ test_env_up:
 	@docker-compose -f ./testdata/docker-compose.test.yml up -d --remove-orphans --build
 	@echo "⏳ Waiting for test DB to be ready ..."
 	@attempts=0; while ! pg_isready -h localhost -p 5432 -U postgres -d postgres >/dev/null && [[ $$attempts -lt 5 ]]; do sleep 1; attempts=$$(($$attempts + 1)); done
-	@[[ $$attempts -lt 5 ]] && echo "🐘 Test Transation DB is up ..." || (echo "❌ Test Transation DB failed to start" && make test_env_down >/dev/null && exit 1)
+	@[[ $$attempts -lt 5 ]] && echo "🐘 Test Transaction DB is up ..." || (echo "❌ Test Transaction DB failed to start" && make test_env_down >/dev/null && exit 1)
+	@sleep 2;
 	@echo "🚀 Test environment is up ..."
 test_env_down:
 	@echo "🧪 Shutting down Portal HTTP DB test environment ..."
