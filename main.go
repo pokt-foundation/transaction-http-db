@@ -17,8 +17,6 @@ import (
 )
 
 const (
-	// App Env determines type of DB connection.
-	appEnv = "APP_ENV"
 	// Postgres DB vars - Required for all Envs.
 	pgUser     = "PG_USER"
 	pgPassword = "PG_PASSWORD"
@@ -51,7 +49,6 @@ const (
 type (
 	options struct {
 		// Required vars
-		appEnv                                         string
 		pgHost, pgPort, pgUser, pgPassword, pgDatabase string
 		dbInstanceConnectionName                       string
 		apiKeys                                        map[string]bool
@@ -70,24 +67,26 @@ type (
 	DBConfig interface {
 		GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error)
 	}
-	CloudSQLConfig struct {
+	cloudSQLConfig struct {
 		options
 	}
-	TestDBConfig struct {
+	testDBConfig struct {
 		options
 	}
 )
 
 func gatherOptions() options {
-	appEnv := environment.GetString(appEnv, "production")
-
-	options := options{
-		appEnv: appEnv,
+	return options{
 		// Required vars
+		apiKeys:    environment.MustGetStringMap(apiKeys, ","),
 		pgUser:     environment.MustGetString(pgUser),
 		pgPassword: environment.MustGetString(pgPassword),
 		pgDatabase: environment.MustGetString(pgDatabase),
-		apiKeys:    environment.MustGetStringMap(apiKeys, ","),
+		// CloudSQL DB Config var
+		dbInstanceConnectionName: environment.GetString(dbInstanceConnectionName, ""),
+		// Local DB Config vars
+		pgHost: environment.GetString(pgHost, ""),
+		pgPort: environment.GetString(pgPort, ""),
 		// Optional vars
 		port:                          environment.GetString(port, defaultPort),
 		maxRelayBatchSize:             int(environment.GetInt64(maxRelayBatchSize, defaultBatchSize)),
@@ -98,23 +97,11 @@ func gatherOptions() options {
 		debug:                         environment.GetBool(debug, defaultDebug),
 		chanSize:                      int(environment.GetInt64(chanSize, defaultChanSize)),
 	}
-
-	switch appEnv {
-	case "production":
-		// For CloudSQL DB
-		options.dbInstanceConnectionName = environment.MustGetString(dbInstanceConnectionName)
-	default:
-		// For local DB
-		options.pgHost = environment.MustGetString(pgHost)
-		options.pgPort = environment.MustGetString(pgPort)
-	}
-
-	return options
 }
 
 // CloudSQLConfig.GetDriver connects to a GCP CloudSQL instance using the cloudsqlconn lib.
 // Intended for production use. Will be used if APP_ENV is 'production'.
-func (c *CloudSQLConfig) GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error) {
+func (c *cloudSQLConfig) GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error) {
 	driverConfig := postgresdriver.CloudSQLConfig{
 		DBUser:                 c.options.pgUser,
 		DBPassword:             c.options.pgPassword,
@@ -130,9 +117,9 @@ func (c *CloudSQLConfig) GetDriver(ctx context.Context) (driver *postgresdriver.
 	return driver, cleanup, nil
 }
 
-// TestDBConfig.GetDriver connects to a Postgres database using standard connection string and user/PW.
+// testDBConfig.GetDriver connects to a Postgres database using standard connection string and user/PW.
 // Intended to be used for running tests on a local Docker container. Will be used if APP_ENV is 'test' or 'development'.
-func (c *TestDBConfig) GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error) {
+func (c *testDBConfig) GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error) {
 	connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		c.options.pgHost,
 		c.options.pgPort,
@@ -166,15 +153,19 @@ func main() {
 
 	log := zap.Must(logConfig.Build())
 
-	// Choose DB configuration based on APP_ENV
+	// Choose DB configuration based on DB config vars
 	var dbConfig DBConfig
-	switch options.appEnv {
-	case "production":
-		// For CloudSQL DB
-		dbConfig = &CloudSQLConfig{options: options}
+	switch {
+	// For CloudSQL DB
+	case options.dbInstanceConnectionName != "":
+		dbConfig = &cloudSQLConfig{options: options}
+
+	// For local DB
+	case options.pgHost != "" && options.pgPort != "":
+		dbConfig = &testDBConfig{options: options}
+
 	default:
-		// For local DB
-		dbConfig = &TestDBConfig{options: options}
+		panic("invalid DB configuration")
 	}
 
 	driver, cleanup, err := dbConfig.GetDriver(context.Background())
