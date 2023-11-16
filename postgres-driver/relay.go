@@ -2,7 +2,6 @@ package postgresdriver
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -12,59 +11,91 @@ import (
 const chainMethodIDSeparator = ","
 
 func (d *PostgresDriver) WriteRelay(ctx context.Context, relay types.Relay) error {
-	now := time.Now()
+	createdAt := time.Now()
 
-	return d.InsertRelay(ctx, InsertRelayParams{
-		PoktChainID:              relay.PoktChainID,
-		EndpointID:               relay.EndpointID,
-		SessionKey:               relay.SessionKey,
-		ProtocolAppPublicKey:     relay.ProtocolAppPublicKey,
-		RelaySourceUrl:           newText(relay.RelaySourceURL),
-		PoktNodeAddress:          newText(relay.PoktNodeAddress),
-		PoktNodeDomain:           newText(relay.PoktNodeDomain),
-		PoktNodePublicKey:        newText(relay.PoktNodePublicKey),
-		RelayStartDatetime:       newTimestamp(relay.RelayStartDatetime),
-		RelayReturnDatetime:      newTimestamp(relay.RelayReturnDatetime),
-		IsError:                  relay.IsError,
-		ErrorCode:                newInt4(int32(relay.ErrorCode), false),
-		ErrorName:                newText(relay.ErrorName),
-		ErrorMessage:             newText(relay.ErrorMessage),
-		ErrorType:                newText(relay.ErrorType),
-		ErrorSource:              newNullErrorSourcesEnum(ErrorSourcesEnum(relay.ErrorSource)),
-		RelayRoundtripTime:       relay.RelayRoundtripTime,
-		RelayChainMethodIds:      strings.Join(relay.RelayChainMethodIDs, chainMethodIDSeparator),
-		RelayDataSize:            int32(relay.RelayDataSize),
-		RelayPortalTripTime:      relay.RelayPortalTripTime,
-		RelayNodeTripTime:        relay.RelayNodeTripTime,
-		RelayUrlIsPublicEndpoint: relay.RelayURLIsPublicEndpoint,
-		PortalRegionName:         relay.PortalRegionName,
-		IsAltruistRelay:          relay.IsAltruistRelay,
-		RequestID:                relay.RequestID,
-		PoktTxID:                 newText(relay.PoktTxID),
-		IsUserRelay:              relay.IsUserRelay,
-		GigastakeAppID:           newText(relay.GigastakeAppID),
-		CreatedAt:                newTimestamp(now),
-		UpdatedAt:                newTimestamp(now),
-		BlockingPlugin:           newText(relay.BlockingPlugin),
+	_, err := d.InsertRelays(ctx, []InsertRelaysParams{
+		{
+			PoktChainID:              relay.PoktChainID,
+			EndpointID:               relay.EndpointID,
+			SessionKey:               relay.SessionKey,
+			ProtocolAppPublicKey:     relay.ProtocolAppPublicKey,
+			RelaySourceUrl:           newText(relay.RelaySourceURL),
+			PoktNodeAddress:          newText(relay.PoktNodeAddress),
+			PoktNodeDomain:           newText(relay.PoktNodeDomain),
+			PoktNodePublicKey:        newText(relay.PoktNodePublicKey),
+			RelayStartDatetime:       newTimestamp(relay.RelayStartDatetime),
+			RelayReturnDatetime:      newTimestamp(relay.RelayReturnDatetime),
+			IsError:                  relay.IsError,
+			ErrorCode:                newInt4(int32(relay.ErrorCode), false),
+			ErrorName:                newText(relay.ErrorName),
+			ErrorMessage:             newText(relay.ErrorMessage),
+			ErrorType:                newText(relay.ErrorType),
+			ErrorSource:              newNullErrorSourcesEnum(ErrorSourcesEnum(relay.ErrorSource)),
+			RelayRoundtripTime:       relay.RelayRoundtripTime,
+			RelayChainMethodIds:      strings.Join(relay.RelayChainMethodIDs, chainMethodIDSeparator),
+			RelayDataSize:            int32(relay.RelayDataSize),
+			RelayPortalTripTime:      relay.RelayPortalTripTime,
+			RelayNodeTripTime:        relay.RelayNodeTripTime,
+			RelayUrlIsPublicEndpoint: relay.RelayURLIsPublicEndpoint,
+			PortalRegionName:         relay.PortalRegionName,
+			IsAltruistRelay:          relay.IsAltruistRelay,
+			RequestID:                relay.RequestID,
+			PoktTxID:                 newText(relay.PoktTxID),
+			IsUserRelay:              relay.IsUserRelay,
+			GigastakeAppID:           newText(relay.GigastakeAppID),
+			CreatedAt:                newTimestamp(createdAt),
+			UpdatedAt:                newTimestamp(createdAt),
+			BlockingPlugin:           newText(relay.BlockingPlugin),
+		},
 	})
+
+	return err
 }
 
-// TODO: use CopyFrom postgres method to do batch inserts more efficiently.
-//
-//	https://docs.sqlc.dev/en/stable/howto/insert.html#using-copyfrom
 func (d *PostgresDriver) WriteRelays(ctx context.Context, relays []*types.Relay) error {
-	var errors []error
+	createdAt := time.Now()
+
+	relayParams := make([]InsertRelaysParams, 0, len(relays))
+
 	for _, relay := range relays {
-		if err := d.WriteRelay(ctx, *relay); err != nil {
-			errors = append(errors, err)
-		}
+		relayParams = append(relayParams, InsertRelaysParams{
+			PoktChainID:              relay.PoktChainID,
+			EndpointID:               relay.EndpointID,
+			SessionKey:               relay.SessionKey,
+			ProtocolAppPublicKey:     relay.ProtocolAppPublicKey,
+			RelaySourceUrl:           newText(relay.RelaySourceURL),
+			PoktNodeAddress:          newText(relay.PoktNodeAddress),
+			PoktNodeDomain:           newText(relay.PoktNodeDomain),
+			PoktNodePublicKey:        newText(relay.PoktNodePublicKey),
+			RelayStartDatetime:       newTimestamp(relay.RelayStartDatetime),
+			RelayReturnDatetime:      newTimestamp(relay.RelayReturnDatetime),
+			IsError:                  relay.IsError,
+			ErrorCode:                newInt4(int32(relay.ErrorCode), false),
+			ErrorName:                newText(relay.ErrorName),
+			ErrorMessage:             newText(relay.ErrorMessage),
+			ErrorType:                newText(relay.ErrorType),
+			ErrorSource:              newNullErrorSourcesEnum(ErrorSourcesEnum(relay.ErrorSource)),
+			RelayRoundtripTime:       relay.RelayRoundtripTime,
+			RelayChainMethodIds:      strings.Join(relay.RelayChainMethodIDs, chainMethodIDSeparator),
+			RelayDataSize:            int32(relay.RelayDataSize),
+			RelayPortalTripTime:      relay.RelayPortalTripTime,
+			RelayNodeTripTime:        relay.RelayNodeTripTime,
+			RelayUrlIsPublicEndpoint: relay.RelayURLIsPublicEndpoint,
+			PortalRegionName:         relay.PortalRegionName,
+			IsAltruistRelay:          relay.IsAltruistRelay,
+			RequestID:                relay.RequestID,
+			PoktTxID:                 newText(relay.PoktTxID),
+			IsUserRelay:              relay.IsUserRelay,
+			GigastakeAppID:           newText(relay.GigastakeAppID),
+			CreatedAt:                newTimestamp(createdAt),
+			UpdatedAt:                newTimestamp(createdAt),
+			BlockingPlugin:           newText(relay.BlockingPlugin),
+		})
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("error writing relay batch: %d insert errors: %w", len(errors), errors[0])
-	}
+	_, err := d.InsertRelays(ctx, relayParams)
 
-	return nil
+	return err
 }
 
 func (d *PostgresDriver) ReadRelay(ctx context.Context, relayID int) (types.Relay, error) {

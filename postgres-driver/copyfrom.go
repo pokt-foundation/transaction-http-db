@@ -9,6 +9,68 @@ import (
 	"context"
 )
 
+// iteratorForInsertRelays implements pgx.CopyFromSource.
+type iteratorForInsertRelays struct {
+	rows                 []InsertRelaysParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForInsertRelays) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForInsertRelays) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].PoktChainID,
+		r.rows[0].EndpointID,
+		r.rows[0].SessionKey,
+		r.rows[0].ProtocolAppPublicKey,
+		r.rows[0].RelaySourceUrl,
+		r.rows[0].PoktNodeAddress,
+		r.rows[0].PoktNodeDomain,
+		r.rows[0].PoktNodePublicKey,
+		r.rows[0].RelayStartDatetime,
+		r.rows[0].RelayReturnDatetime,
+		r.rows[0].IsError,
+		r.rows[0].ErrorCode,
+		r.rows[0].ErrorName,
+		r.rows[0].ErrorMessage,
+		r.rows[0].ErrorSource,
+		r.rows[0].ErrorType,
+		r.rows[0].RelayRoundtripTime,
+		r.rows[0].RelayChainMethodIds,
+		r.rows[0].RelayDataSize,
+		r.rows[0].RelayPortalTripTime,
+		r.rows[0].RelayNodeTripTime,
+		r.rows[0].RelayUrlIsPublicEndpoint,
+		r.rows[0].PortalRegionName,
+		r.rows[0].IsAltruistRelay,
+		r.rows[0].IsUserRelay,
+		r.rows[0].RequestID,
+		r.rows[0].PoktTxID,
+		r.rows[0].GigastakeAppID,
+		r.rows[0].CreatedAt,
+		r.rows[0].UpdatedAt,
+		r.rows[0].BlockingPlugin,
+	}, nil
+}
+
+func (r iteratorForInsertRelays) Err() error {
+	return nil
+}
+
+func (q *Queries) InsertRelays(ctx context.Context, arg []InsertRelaysParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"relay"}, []string{"pokt_chain_id", "endpoint_id", "session_key", "protocol_app_public_key", "relay_source_url", "pokt_node_address", "pokt_node_domain", "pokt_node_public_key", "relay_start_datetime", "relay_return_datetime", "is_error", "error_code", "error_name", "error_message", "error_source", "error_type", "relay_roundtrip_time", "relay_chain_method_ids", "relay_data_size", "relay_portal_trip_time", "relay_node_trip_time", "relay_url_is_public_endpoint", "portal_region_name", "is_altruist_relay", "is_user_relay", "request_id", "pokt_tx_id", "gigastake_app_id", "created_at", "updated_at", "blocking_plugin"}, &iteratorForInsertRelays{rows: arg})
+}
+
 // iteratorForInsertServiceRecords implements pgx.CopyFromSource.
 type iteratorForInsertServiceRecords struct {
 	rows                 []InsertServiceRecordsParams

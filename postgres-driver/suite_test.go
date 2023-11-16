@@ -25,10 +25,6 @@ type PGDriverTestSuite struct {
 }
 
 func Test_RunPGDriverSuite(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping driver integration test")
-	}
-
 	testSuite := new(PGDriverTestSuite)
 	testSuite.connectionString = connectionString
 
@@ -106,8 +102,6 @@ func (ts *PGDriverTestSuite) initPostgresDriver() error {
 	if err != nil {
 		return err
 	}
-
-	// defer cleanup()
 
 	ts.driver = driver
 

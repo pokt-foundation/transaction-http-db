@@ -1,4 +1,4 @@
--- name: InsertRelay :exec
+-- name: InsertRelays :copyfrom
 INSERT INTO relay (
     pokt_chain_id,
     endpoint_id,
