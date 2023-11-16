@@ -3,7 +3,7 @@ package batch
 import (
 	context "context"
 
-	types "github.com/pokt-foundation/transaction-db/types"
+	types "github.com/pokt-foundation/transaction-http-db/types"
 	mock "github.com/stretchr/testify/mock"
 )
 

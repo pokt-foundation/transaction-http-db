@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	postgresdriver "github.com/pokt-foundation/transaction-db/postgres-driver"
 	"github.com/pokt-foundation/transaction-http-db/batch"
+	postgresdriver "github.com/pokt-foundation/transaction-http-db/postgres-driver"
 	"github.com/pokt-foundation/transaction-http-db/router"
 	"github.com/pokt-foundation/utils-go/environment"
 	"go.uber.org/zap"
