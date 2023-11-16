@@ -70,7 +70,7 @@ type (
 	DBConfig interface {
 		GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error)
 	}
-	CloudSQLConfig struct {
+	cloudSQLConfig struct {
 		options
 	}
 	TestDBConfig struct {
@@ -112,15 +112,14 @@ func gatherOptions() options {
 	return options
 }
 
-// CloudSQLConfig.GetDriver connects to a GCP CloudSQL instance using the cloudsqlconn lib.
+// cloudSQLConfig.GetDriver connects to a GCP CloudSQL instance using the cloudsqlconn lib.
 // Intended for production use. Will be used if APP_ENV is 'production'.
-func (c *CloudSQLConfig) GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error) {
+func (c *cloudSQLConfig) GetDriver(ctx context.Context) (driver *postgresdriver.PostgresDriver, cleanup func() error, err error) {
 	driverConfig := postgresdriver.CloudSQLConfig{
 		DBUser:                 c.options.pgUser,
 		DBPassword:             c.options.pgPassword,
 		DBName:                 c.options.pgDatabase,
 		InstanceConnectionName: c.options.dbInstanceConnectionName,
-		// PrivateIP:              "true",
 	}
 
 	driver, cleanup, err = postgresdriver.NewCloudSQLPostgresDriver(driverConfig)
@@ -172,7 +171,7 @@ func main() {
 	switch options.appEnv {
 	case "production":
 		// For CloudSQL DB
-		dbConfig = &CloudSQLConfig{options: options}
+		dbConfig = &cloudSQLConfig{options: options}
 	default:
 		// For local DB
 		dbConfig = &TestDBConfig{options: options}
