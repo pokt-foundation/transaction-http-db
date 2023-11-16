@@ -2,8 +2,6 @@ module github.com/pokt-foundation/transaction-http-db
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	github.com/gorilla/mux v1.8.0
 	github.com/pokt-foundation/transaction-db v1.23.0
