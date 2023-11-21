@@ -26,6 +26,7 @@ const (
 	pgPort = "PG_PORT"
 	// CloudSQL DB vars - Required for production Env.
 	dbInstanceConnectionName = "DB_INSTANCE_CONNECTION_NAME"
+	privateIP                = "PRIVATE_IP"
 
 	chanSize                      = "CHAN_SIZE"
 	apiKeys                       = "API_KEYS"
@@ -49,9 +50,13 @@ const (
 type (
 	options struct {
 		// Required vars
-		pgHost, pgPort, pgUser, pgPassword, pgDatabase string
-		dbInstanceConnectionName                       string
-		apiKeys                                        map[string]bool
+		apiKeys                        map[string]bool
+		pgUser, pgPassword, pgDatabase string
+		// Local DB vars - Required for development/test Env.
+		pgHost, pgPort string
+		// CloudSQL DB vars - Required for production Env.
+		dbInstanceConnectionName string
+		privateIP                bool
 		// Optional vars
 		port                          string
 		maxRelayBatchSize             int
@@ -84,6 +89,7 @@ func gatherOptions() options {
 		pgDatabase: environment.MustGetString(pgDatabase),
 		// CloudSQL DB Config var
 		dbInstanceConnectionName: environment.GetString(dbInstanceConnectionName, ""),
+		privateIP:                environment.GetBool(privateIP, false),
 		// Local DB Config vars
 		pgHost: environment.GetString(pgHost, ""),
 		pgPort: environment.GetString(pgPort, ""),
@@ -107,6 +113,9 @@ func (c *cloudSQLConfig) GetDriver(ctx context.Context) (driver *postgresdriver.
 		DBPassword:             c.options.pgPassword,
 		DBName:                 c.options.pgDatabase,
 		InstanceConnectionName: c.options.dbInstanceConnectionName,
+	}
+	if c.options.privateIP {
+		driverConfig.PrivateIP = "true"
 	}
 
 	driver, cleanup, err = postgresdriver.NewCloudSQLPostgresDriver(driverConfig)
