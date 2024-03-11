@@ -19,7 +19,7 @@ const (
 
 // NewMetricExporter returns a exporter with the available metrics predefined
 func NewMetricExporter() exporter.MetricExporter {
-	metricsExporter := exporter.NewMetricExporter("http_db")
+	metricsExporter := exporter.NewMetricExporter("http_txdb")
 	metricsExporter.NewCounter(CategorySubscription,
 		NameData,
 		[]string{LabelType}, "Data management")
