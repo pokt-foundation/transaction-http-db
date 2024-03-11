@@ -18,6 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
+      
+      - name: Setup Git Authentication
+        run: |
+          git config --global url."https://${{ secrets.POKT_BOT_GITHUB_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
 
       - name: Run Golang ci Action
         uses: golangci/golangci-lint-action@v3
@@ -38,7 +42,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-            
+
       - name: Setup Git Authentication
         run: |
           git config --global url."https://${{ secrets.POKT_BOT_GITHUB_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
