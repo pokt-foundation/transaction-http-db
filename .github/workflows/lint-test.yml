@@ -38,6 +38,10 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+            
+      - name: Setup Git Authentication
+        run: |
+          git config --global url."https://${{ secrets.POKT_BOT_GITHUB_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
 
       - name: Run Unit tests
         run: go test ./...

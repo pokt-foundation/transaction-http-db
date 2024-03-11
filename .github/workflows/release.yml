@@ -71,6 +71,8 @@ jobs:
           push: true
           context: .
           file: ./Dockerfile
+          build-args: |
+             GITHUB_TOKEN=${{ secrets.GIT_AUTH_TOKEN }}
           tags: |
             pocketfoundation/transaction-http-db:latest
             pocketfoundation/transaction-http-db:${{ needs.release.outputs.version }}
