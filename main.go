@@ -10,6 +10,7 @@ import (
 
 	postgresdriver "github.com/pokt-foundation/transaction-db/postgres-driver"
 	"github.com/pokt-foundation/transaction-http-db/batch"
+	"github.com/pokt-foundation/transaction-http-db/metric"
 	"github.com/pokt-foundation/transaction-http-db/router"
 	"github.com/pokt-foundation/utils-go/environment"
 	"go.uber.org/zap"
@@ -188,8 +189,10 @@ func main() {
 		}
 	}()
 
-	relayBatch := batch.NewBatch(options.maxRelayBatchSize, options.chanSize, "relay", options.maxRelayBatchDuration, options.dbTimeout, driver.WriteRelays, log)
-	serviceRecordBatch := batch.NewBatch(options.maxServiceRecordBatchSize, options.chanSize, "service_record", options.maxServiceRecordBatchDuration, options.dbTimeout, driver.WriteServiceRecords, log)
+	metricsExporter := metric.NewMetricExporter()
+
+	relayBatch := batch.NewBatch(options.maxRelayBatchSize, options.chanSize, "relay", options.maxRelayBatchDuration, options.dbTimeout, driver.WriteRelays, log, metricsExporter)
+	serviceRecordBatch := batch.NewBatch(options.maxServiceRecordBatchSize, options.chanSize, "service_record", options.maxServiceRecordBatchDuration, options.dbTimeout, driver.WriteServiceRecords, log, metricsExporter)
 
 	router, err := router.NewRouter(driver, options.apiKeys, options.port, relayBatch, serviceRecordBatch, log)
 	if err != nil {

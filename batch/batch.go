@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pokt-foundation/portal-middleware/metrics/exporter"
+	"github.com/pokt-foundation/transaction-http-db/metric"
 	"go.uber.org/zap"
 )
 
@@ -27,13 +29,18 @@ type Batch[T Validator] struct {
 	writer      writerFunc[T]
 	log         *zap.Logger
 	index       atomic.Int32
+	errCounter  exporter.Counter
+	dataCounter exporter.Counter
 }
 
 func (b *Batch[T]) logError(err error) {
 	b.log.Error(err.Error(), zap.String("err", err.Error()), zap.String("name", b.name))
 }
 
-func NewBatch[T Validator](maxSize, chanSize int, name string, maxDuration, timeoutDB time.Duration, writer writerFunc[T], logger *zap.Logger) *Batch[T] {
+func NewBatch[T Validator](maxSize, chanSize int, name string, maxDuration, timeoutDB time.Duration, writer writerFunc[T], logger *zap.Logger, metrics exporter.MetricExporter) *Batch[T] {
+
+	errCounter := metrics.Counter(metric.CategorySubscription, metric.NameError)
+	dataCounter := metrics.Counter(metric.CategorySubscription, metric.NameData)
 	batch := &Batch[T]{
 		maxSize:     maxSize,
 		name:        name,
@@ -44,6 +51,8 @@ func NewBatch[T Validator](maxSize, chanSize int, name string, maxDuration, time
 		log:         logger,
 		items:       make([]T, maxSize),
 		index:       atomic.Int32{},
+		dataCounter: dataCounter,
+		errCounter:  errCounter,
 	}
 
 	go batch.Batcher()
@@ -125,14 +134,22 @@ func (b *Batch[T]) Save() error {
 		errChan <- b.writer(ctx, items)
 	}()
 
+	var err error
 	select {
-	case err := <-errChan:
-		if err != nil {
-			return err
-		}
+	case writeErr := <-errChan:
+		err = writeErr
 	case <-ctx.Done():
-		return ctx.Err()
+		err = ctx.Err()
 	}
+
+	if err != nil {
+		b.dataCounter.Add(fmt.Sprintf("%s_lost", b.name), float64(size))
+		b.errCounter.Inc(fmt.Sprintf("%s_batch_failed", b.name))
+
+		return err
+	}
+
+	b.dataCounter.Add(fmt.Sprintf("%s_saved", b.name), float64(size))
 
 	return nil
 }
