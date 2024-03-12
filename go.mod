@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/gorilla/mux v1.8.0
-	github.com/pokt-foundation/transaction-db v1.23.0
+	github.com/pokt-foundation/transaction-db v1.23.1
 	github.com/pokt-foundation/utils-go v0.11.1
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/zap v1.24.0
