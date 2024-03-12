@@ -96,6 +96,7 @@ func (b *Batch[T]) Batcher() {
 				b.log.Debug(fmt.Sprintf("max size on %s batcher reached", b.name))
 				if err := b.Save(); err != nil {
 					b.logError(fmt.Errorf("error saving %s batch: %s", b.name, err))
+					b.reportErrorMetric()
 				}
 				// Reset the ticker when max size is reached
 				ticker = time.NewTicker(b.maxDuration)
@@ -105,9 +106,15 @@ func (b *Batch[T]) Batcher() {
 			b.log.Debug(fmt.Sprintf("max duration on %s batcher reached", b.name))
 			if err := b.Save(); err != nil {
 				b.logError(fmt.Errorf("error saving %s batch: %s", b.name, err))
+				b.reportErrorMetric()
 			}
 		}
 	}
+}
+
+func (b *Batch[T]) reportErrorMetric() {
+	b.dataCounter.Add(fmt.Sprintf("%s_lost", b.name), float64(b.Size()))
+	b.errCounter.Inc(fmt.Sprintf("%s_batch_failed", b.name))
 }
 
 func (b *Batch[T]) Save() error {
@@ -134,22 +141,15 @@ func (b *Batch[T]) Save() error {
 		errChan <- b.writer(ctx, items)
 	}()
 
-	var err error
 	select {
-	case writeErr := <-errChan:
-		err = writeErr
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
 	case <-ctx.Done():
-		err = ctx.Err()
-	}
-
-	if err != nil {
-		b.dataCounter.Add(fmt.Sprintf("%s_lost", b.name), float64(size))
-		b.errCounter.Inc(fmt.Sprintf("%s_batch_failed", b.name))
-
-		return err
+		return ctx.Err()
 	}
 
 	b.dataCounter.Add(fmt.Sprintf("%s_saved", b.name), float64(size))
-
 	return nil
 }
