@@ -13,6 +13,7 @@ import (
 	"github.com/pokt-foundation/transaction-db/types"
 	"github.com/pokt-foundation/transaction-http-db/batch"
 	jsonresponse "github.com/pokt-foundation/utils-go/json-response"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -57,6 +58,7 @@ func NewRouter(driver Driver, apiKeys map[string]bool, port string, relayBatch *
 	}
 
 	rt.router.HandleFunc("/", rt.HealthCheck).Methods(http.MethodGet)
+	rt.router.Handle("/metrics", promhttp.Handler())
 
 	rt.router.HandleFunc("/v0/session", rt.CreateSession).Methods(http.MethodPost)
 	rt.router.HandleFunc("/v0/region", rt.CreateRegion).Methods(http.MethodPost)
