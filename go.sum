@@ -117,8 +117,6 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pokt-foundation/portal-middleware v0.0.110-rc179 h1:rSxGvZ4RMWKrt+2OA5skjFfDCr5CNSkipKfeQqNO9nk=
 github.com/pokt-foundation/portal-middleware v0.0.110-rc179/go.mod h1:8mjOkH4Mk5uFRW5t1eoUgtFCASSrt7qdMrUL3Mjn5W4=
-github.com/pokt-foundation/transaction-db v1.23.0 h1:b848mUg6AkpYqLL8yDDz6cQX/oqcqdCxYE3Sc3nS81c=
-github.com/pokt-foundation/transaction-db v1.23.0/go.mod h1:JEpKrqtjO6b4CiDb70bj7s1gn8cIfwlexE4HosL430U=
 github.com/pokt-foundation/transaction-db v1.23.1 h1:AxAKSinqsM0zV5ZesgxT093bOw2nKGgZsNtb9iZkhzU=
 github.com/pokt-foundation/transaction-db v1.23.1/go.mod h1:JEpKrqtjO6b4CiDb70bj7s1gn8cIfwlexE4HosL430U=
 github.com/pokt-foundation/utils-go v0.11.1 h1:o/kF4KFaClAz2AvybDrEQR1TpEEx6zwyuGcOlD/aLuY=
