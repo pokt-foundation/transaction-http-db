@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/gorilla/mux v1.8.0
 	github.com/pokt-foundation/portal-middleware v0.0.110-rc179
-	github.com/pokt-foundation/transaction-db v1.23.0
+	github.com/pokt-foundation/transaction-db v1.23.1
 	github.com/pokt-foundation/utils-go v0.11.1
 	github.com/prometheus/client_golang v1.19.0
 	github.com/stretchr/testify v1.8.4
