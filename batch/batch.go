@@ -150,6 +150,6 @@ func (b *Batch[T]) Save() error {
 		return ctx.Err()
 	}
 
-	b.dataCounter.Add(fmt.Sprintf("%s_saved", b.name), float64(size))
+	b.dataCounter.Add(fmt.Sprintf("%s_saved", b.name), float64(size)) // the name will change from relay and count
 	return nil
 }
